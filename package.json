@@ -3,13 +3,13 @@
   "version": "1.0.0",
   "type": "commonjs",
   "scripts": {
-    "build": "npm install && npm run build-frontend",
-    "build-frontend": "vite build",
+    "build": "npx vite build",
     "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.19.2",
     "axios": "^1.6.5",
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "vite": "^5.0.12"
   }
 }
