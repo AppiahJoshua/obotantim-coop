@@ -1,14 +1,15 @@
 {
-  "name": "obotantim-coop-backend",
+  "name": "obotantim-coop",
   "version": "1.0.0",
-  "description": "Backend API for Obotantim Cooperative Mutual Support and Social Services Society LTD",
-  "main": "src/server.js",
+  "type": "commonjs",
+  "description": "Full-stack application for Obotantim Cooperative Mutual Support and Social Services Society LTD",
+  "main": "server.js",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
-    "seed": "node src/utils/seed.js"
+    "build": "npx vite build",
+    "start": "node server.js"
   },
   "dependencies": {
+    "axios": "^1.6.5",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^1.41.3",
     "cors": "^2.8.5",
@@ -22,9 +23,19 @@
     "multer": "^1.4.5-lts.1",
     "multer-storage-cloudinary": "^4.0.0",
     "mysql2": "^3.23.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.21.3",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2"
+    "@types/react": "^18.2.55",
+    "@types/react-dom": "^18.2.19",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.17",
+    "nodemon": "^3.0.2",
+    "postcss": "^8.4.33",
+    "tailwindcss": "^3.4.1",
+    "vite": "^5.0.12"
   }
 }
