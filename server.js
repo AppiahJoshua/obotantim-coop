@@ -5,8 +5,8 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 
-// Explicitly load .env from the backend root directory
-require('dotenv').config({ path: path.join(__dirname, '../.env') });
+// Explicitly load .env from the root directory
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const app = express();
 
@@ -77,14 +77,14 @@ app.use('/api/announcements', announcementsRouter);
 app.use('/api/admin/users', usersRouter);
 app.use('/api/admin/dashboard', setNoCache, dashboardRouter); 
 app.use('/api/admin/permissions', permissionsRouter);
-app.use('/api/admin/notifications', notificationsRoutes.default || notificationsRoutes); 
+app.use('/api/admin/notifications', notificationsRoutes); 
 
 // ── Health Check ──────────────────────────────────────────────
 app.get('/health', (req, res) => res.json({ status: 'OK', timestamp: new Date().toISOString() }));
 
 // ── Frontend Production Static Serving ────────────────────────
-// Serves your built React files from C:\xampp\htdocs\obotantim-coop\frontend\dist
-app.use(express.static(path.join(__dirname, '../../frontend/dist')));
+// Updated to point directly to the root-level 'dist' folder
+app.use(express.static(path.join(__dirname, 'dist')));
 
 // Catch-all route to support React Router client-side navigation
 app.get('*', (req, res, next) => {
@@ -92,7 +92,7 @@ app.get('*', (req, res, next) => {
   if (req.originalUrl.startsWith('/api')) {
     return next();
   }
-  res.sendFile(path.join(__dirname, '../../frontend/dist/index.html'));
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 // ── 404 Handler ───────────────────────────────────────────────
