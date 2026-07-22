@@ -20,11 +20,11 @@ import AdminUsers from './pages/admin/AdminUsers';
 import AdminAuditLogs from './pages/admin/AdminAuditLogs';
 import PermissionSettings from './pages/admin/PermissionSettings';
 
-// Initialize QueryClient with staleTime set to 0 for real-time polling updates
+// Initialize QueryClient with staleTime set to 5 minutes
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 0,
+      staleTime: 1000 * 60 * 5, // 5 minutes
       refetchOnWindowFocus: true,
     },
   },
