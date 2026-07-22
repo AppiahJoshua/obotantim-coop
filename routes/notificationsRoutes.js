@@ -1,8 +1,8 @@
-import express from 'express';
+const express = require('express');
 const router = express.Router();
-import pool from '../config/database.js';
-import { authenticate } from '../middleware/auth.js';
-import { isManagerOrAbove } from '../middleware/rbac.js';
+const pool = require('../config/database');
+const { authenticate } = require('../middleware/auth');
+const { isManagerOrAbove } = require('../middleware/rbac');
 
 // GET: Fetch all admin notifications (latest first)
 router.get('/', authenticate, isManagerOrAbove, async (req, res, next) => {
@@ -47,4 +47,4 @@ router.put('/:id/read', authenticate, isManagerOrAbove, async (req, res, next) =
   }
 });
 
-export default router;
+module.exports = router;
