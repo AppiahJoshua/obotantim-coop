@@ -44,12 +44,10 @@ export default function AdminDashboard() {
   const outletContext = useOutletContext() || {};
   const contextPermissions = outletContext.permissions || {};
 
-  // Updated useQuery with background refetching (polling every 5 seconds)
+  // Updated useQuery without continuous 5s polling loop
   const { data, isLoading } = useQuery({
     queryKey: ['dashboard'],
     queryFn: () => api.get('/admin/dashboard').then(r => r.data),
-    refetchInterval: 5000, // Automatically refetch dashboard data every 5s
-    refetchIntervalInBackground: true, // Keep fetching even when the tab isn't active
   });
 
   if (isLoading) {
