@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const db = require('./config/db'); // Ensure your database pool/connection is imported here
 
 // Explicitly load .env from the root directory
 require('dotenv').config({ path: path.join(__dirname, '.env') });
@@ -68,7 +69,7 @@ const { galleryRouter } = require('./routes/gallery');
 const registrationsRoutes = require('./routes/registrations');
 const messagesRoutes = require('./routes/messages');
 const { directorRouter, testimonialsRouter, announcementsRouter } = require('./routes/content');
-const { usersRouter, dashboardRouter, permissionsRouter } = require('./routes/admin');
+const { usersRouter, dashboardRouter } = require('./routes/admin');
 const notificationsRoutes = require('./routes/notificationsRoutes'); 
 
 // Helper to prevent response caching on dynamic API data
@@ -89,8 +90,20 @@ app.use('/api/testimonials', testimonialsRouter);
 app.use('/api/announcements', announcementsRouter);
 app.use('/api/admin/users', usersRouter);
 app.use('/api/admin/dashboard', setNoCache, dashboardRouter); 
-app.use('/api/admin/permissions', permissionsRouter);
 app.use('/api/admin/notifications', notificationsRoutes); 
+
+// ── Permissions Endpoint (Updated SQL Column) ──────────────────
+app.get('/api/admin/permissions', async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      'SELECT id, widget_key, label, allowed_roles, is_visible FROM dashboard_permissions'
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('[ERROR]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // ── Health Check ──────────────────────────────────────────────
 app.get('/health', (req, res) => res.json({ status: 'OK', timestamp: new Date().toISOString() }));
