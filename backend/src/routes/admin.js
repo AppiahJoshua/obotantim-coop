@@ -4,10 +4,10 @@ const usersRouter = express.Router();
 const dashboardRouter = express.Router();
 const permissionsRouter = express.Router();
 
-// Controllers (Updated to point to src/controllers)
-const usersCtrl = require('../src/controllers/usersController');
-const { getOverview } = require('../src/controllers/dashboardController');
-const permissionsCtrl = require('../src/controllers/permissionsController');
+// Controllers (Pointing to sibling directory backend/src/controllers/)
+const usersCtrl = require('../controllers/usersController');
+const { getOverview } = require('../controllers/dashboardController');
+const permissionsCtrl = require('../controllers/permissionsController');
 
 // Middleware
 const { authenticate } = require('../middleware/auth');
@@ -21,13 +21,10 @@ usersRouter.put('/:id/reset-password', authenticate, isSuperAdmin, usersCtrl.res
 usersRouter.delete('/:id', authenticate, isSuperAdmin, usersCtrl.remove);
 
 // ── Dynamic Dashboard Layout Settings ────────────────────────────────
-// GET: Accessible by ALL authenticated staff
 permissionsRouter.get('/', authenticate, permissionsCtrl.getWidgetPermissions);
-
-// POST: Strictly locked to Super Admin
 permissionsRouter.post('/toggle', authenticate, isSuperAdmin, permissionsCtrl.toggleWidgetVisibility);
 
-// ── Dashboard Overview Route (All Authenticated Staff) ───────────────
+// ── Dashboard Overview Route ─────────────────────────────────────────
 dashboardRouter.get('/', authenticate, getOverview);
 
 module.exports = { usersRouter, dashboardRouter, permissionsRouter };
