@@ -13,19 +13,23 @@ const getWidgetPermissions = async (req, res, next) => {
 // Toggle a specific widget's visibility or configuration
 const toggleWidgetVisibility = async (req, res, next) => {
   try {
-    const { widget_key, is_visible, allowed_roles } = req.body;
+    const { widget_key, label, is_visible, allowed_roles } = req.body;
 
     // Default allowed_roles to a valid empty JSON array string if not provided
     const rolesJson = allowed_roles ? JSON.stringify(allowed_roles) : JSON.stringify([]);
 
-    // Use an UPSERT statement targeting the unique widget_key
+    // Fallback label if not explicitly provided in the payload
+    const widgetLabel = label || widget_key;
+
+    // Use an UPSERT statement including the required 'label' field
     await pool.query(`
-      INSERT INTO dashboard_permissions (widget_key, is_visible, allowed_roles)
-      VALUES (?, ?, ?)
+      INSERT INTO dashboard_permissions (widget_key, label, is_visible, allowed_roles)
+      VALUES (?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE 
+        label = COALESCE(VALUES(label), label),
         is_visible = VALUES(is_visible),
         allowed_roles = VALUES(allowed_roles)
-    `, [widget_key, is_visible ? 1 : 0, rolesJson]);
+    `, [widget_key, widgetLabel, is_visible ? 1 : 0, rolesJson]);
 
     res.json({ message: 'Permissions updated successfully.' });
   } catch (err) {
