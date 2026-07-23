@@ -4,7 +4,7 @@ const usersRouter = express.Router();
 const dashboardRouter = express.Router();
 const permissionsRouter = express.Router();
 
-// Controllers (Standard sibling relative path)
+// Controllers
 const usersCtrl = require('../controllers/usersController');
 const { getOverview } = require('../controllers/dashboardController');
 const permissionsCtrl = require('../controllers/permissionsController');
