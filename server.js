@@ -11,7 +11,20 @@ require('dotenv').config({ path: path.join(__dirname, '.env') });
 const app = express();
 
 // ── Security ─────────────────────────────────────────────────
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https://res.cloudinary.com"],
+        connectSrc: ["'self'"],
+      },
+    },
+  })
+);
+
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true,
@@ -83,12 +96,10 @@ app.use('/api/admin/notifications', notificationsRoutes);
 app.get('/health', (req, res) => res.json({ status: 'OK', timestamp: new Date().toISOString() }));
 
 // ── Frontend Production Static Serving ────────────────────────
-// Updated to point directly to the root-level 'dist' folder
 app.use(express.static(path.join(__dirname, 'dist')));
 
 // Catch-all route to support React Router client-side navigation
 app.get('*', (req, res, next) => {
-  // Let API calls pass through to the 404 handler if they don't match routes
   if (req.originalUrl.startsWith('/api')) {
     return next();
   }
