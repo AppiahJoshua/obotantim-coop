@@ -1,23 +1,37 @@
 const mysql = require('mysql2/promise');
 require('dotenv').config();
 
-// Parse the DATABASE_URL to safely handle query parameters like ssl-mode
-const dbUrl = new URL(process.env.DATABASE_URL);
-
-// Extract ssl-mode from query params if present and map it to mysql2's expected 'ssl' property
-const sslMode = dbUrl.searchParams.get('ssl-mode') || dbUrl.searchParams.get('sslmode');
-dbUrl.searchParams.delete('ssl-mode');
-dbUrl.searchParams.delete('sslmode');
-
+// Parse and sanitize the DATABASE_URL to remove invalid parameters like ssl-mode
+const rawUrl = process.env.DATABASE_URL || '';
+let connectionConfig = rawUrl;
 let sslConfig = undefined;
-if (sslMode && sslMode.toUpperCase() !== 'DISABLED') {
-  sslConfig = {
-    rejectUnauthorized: sslMode.toUpperCase() === 'VERIFY_CA' || sslMode.toUpperCase() === 'VERIFY_IDENTITY'
-  };
+
+if (rawUrl) {
+  try {
+    const dbUrl = new URL(rawUrl);
+    
+    // Extract ssl-mode settings if present
+    const sslMode = dbUrl.searchParams.get('ssl-mode') || dbUrl.searchParams.get('sslmode');
+    
+    // Delete them from the URL query string so mysql2 doesn't see them
+    dbUrl.searchParams.delete('ssl-mode');
+    dbUrl.searchParams.delete('sslmode');
+
+    if (sslMode && sslMode.toUpperCase() !== 'DISABLED') {
+      sslConfig = {
+        rejectUnauthorized: sslMode.toUpperCase() === 'VERIFY_CA' || sslMode.toUpperCase() === 'VERIFY_IDENTITY'
+      };
+    }
+
+    connectionConfig = dbUrl.toString();
+  } catch (e) {
+    // Fallback if URL parsing fails for any reason
+    console.warn('⚠️ Could not parse DATABASE_URL via URL parser, using raw string.');
+  }
 }
 
 const pool = mysql.createPool({
-  uri: dbUrl.toString(),
+  uri: connectionConfig,
   ssl: sslConfig,
   waitForConnections: true,
   connectionLimit: 10,
