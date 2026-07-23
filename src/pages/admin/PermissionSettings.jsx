@@ -30,7 +30,6 @@ export default function PermissionSettings() {
     queryKey: ['permissions-matrix'],
     queryFn: async () => {
       const res = await api.get('/admin/permissions');
-      // Normalize response whether backend returns an array or an object wrapper
       if (Array.isArray(res.data)) return res.data;
       if (Array.isArray(res.data?.permissions)) return res.data.permissions;
       if (Array.isArray(res.data?.data)) return res.data.data;
@@ -42,16 +41,13 @@ export default function PermissionSettings() {
   const toggleMutation = useMutation({
     mutationFn: (payload) => api.post('/admin/permissions/toggle', payload),
     onMutate: async (newPermission) => {
-      // Cancel outgoing refetches so they don't overwrite optimistic update
       await queryClient.cancelQueries({ queryKey: ['permissions-matrix'] });
-
-      // Snapshot previous value for rollback on error
       const previousPermissions = queryClient.getQueryData(['permissions-matrix']);
 
-      // Optimistically update the local cache state
+      // Optimistically update based on per-role row schema
       queryClient.setQueryData(['permissions-matrix'], (old = []) => {
         const existingIndex = old.findIndex(
-          p => p.role_name === newPermission.role_name && p.widget_key === newPermission.widget_key
+          p => p.role === newPermission.role && p.widget_key === newPermission.widget_key
         );
 
         if (existingIndex > -1) {
@@ -65,7 +61,7 @@ export default function PermissionSettings() {
           return [
             ...old,
             {
-              role_name: newPermission.role_name,
+              role: newPermission.role,
               widget_key: newPermission.widget_key,
               is_visible: newPermission.is_visible ? 1 : 0
             }
@@ -76,13 +72,11 @@ export default function PermissionSettings() {
       return { previousPermissions };
     },
     onError: (err, newPermission, context) => {
-      // Rollback to previous state on error
       if (context?.previousPermissions) {
         queryClient.setQueryData(['permissions-matrix'], context.previousPermissions);
       }
     },
     onSettled: () => {
-      // Re-sync with backend data
       queryClient.invalidateQueries({ queryKey: ['permissions-matrix'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     }
@@ -91,7 +85,7 @@ export default function PermissionSettings() {
   // Check if a widget is set to visible for a specific role
   const checkIsVisible = (role, widgetKey) => {
     const found = databasePermissions.find(
-      p => p.role_name === role && p.widget_key === widgetKey
+      p => p.role === role && p.widget_key === widgetKey
     );
     if (!found) return true; // Default to true if not explicitly disabled in DB
     return Number(found.is_visible) === 1 || found.is_visible === true;
@@ -121,7 +115,7 @@ export default function PermissionSettings() {
                       type="button"
                       disabled={isPending}
                       onClick={() => toggleMutation.mutate({
-                        role_name: roleName,
+                        role: roleName,
                         widget_key: widget.key,
                         is_visible: !visible
                       })}
