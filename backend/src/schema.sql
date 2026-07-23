@@ -24,11 +24,12 @@ CREATE TABLE admin_users (
   updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- ── 2. UI Dashboard Permissions (RBAC) ────────────────        
+-- ── 2. UI Dashboard Permissions (RBAC) ────────────────────────
 CREATE TABLE dashboard_permissions (
     id             INT AUTO_INCREMENT PRIMARY KEY,
     widget_key     VARCHAR(100) NOT NULL UNIQUE,
     label          VARCHAR(100) NOT NULL,
+    role           VARCHAR(50) DEFAULT 'all',
     is_visible     TINYINT(1) NOT NULL DEFAULT 1,
     allowed_roles  JSON DEFAULT NULL,
     updated_by     INT NULL,
@@ -270,11 +271,11 @@ VALUES (
 );
 
 -- ── Seed Data: Initial Permissions Setup ─────────────────────
-INSERT IGNORE INTO dashboard_permissions (widget_key, label, is_visible) VALUES
-('analytics_summary', 'Analytics Overview Card', 1),
-('registrations_table', 'Member Registrations Table', 1),
-('recent_messages', 'Contact Messages Panel', 1),
-('announcements_manager', 'Announcements Posting Card', 1);
+INSERT IGNORE INTO dashboard_permissions (widget_key, label, role, is_visible) VALUES
+('analytics_summary', 'Analytics Overview Card', 'all', 1),
+('registrations_table', 'Member Registrations Table', 'all', 1),
+('recent_messages', 'Contact Messages Panel', 'all', 1),
+('announcements_manager', 'Announcements Posting Card', 'all', 1);
 
 -- ── Seed Data: Director Message ──────────────────────────────
 INSERT INTO director_message (director_name, title, message)
