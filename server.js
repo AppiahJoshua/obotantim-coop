@@ -69,7 +69,7 @@ const registrationsRoutes = require('./routes/registrations');
 const messagesRoutes = require('./routes/messages');
 const { directorRouter, testimonialsRouter, announcementsRouter } = require('./routes/content');
 const { usersRouter, dashboardRouter, permissionsRouter } = require('./routes/admin');
-const notificationsRoutes = require('./routes/notificationsRoutes'); 
+const notificationsRoutes = require('./routes/notificationsRoutes');
 
 // Helper to prevent response caching on dynamic API data
 const setNoCache = (req, res, next) => {
@@ -88,9 +88,10 @@ app.use('/api/director', directorRouter);
 app.use('/api/testimonials', testimonialsRouter);
 app.use('/api/announcements', announcementsRouter);
 app.use('/api/admin/users', usersRouter);
-app.use('/api/admin/dashboard', setNoCache, dashboardRouter); 
+app.use('/api/admin/dashboard', setNoCache, dashboardRouter);
 app.use('/api/admin/permissions', permissionsRouter);
-app.use('/api/admin/notifications', notificationsRoutes); 
+// Added setNoCache here to force 200 OK live responses instead of 304 browser caching
+app.use('/api/admin/notifications', setNoCache, notificationsRoutes);
 
 // ── Health Check ──────────────────────────────────────────────
 app.get('/health', (req, res) => res.json({ status: 'OK', timestamp: new Date().toISOString() }));
