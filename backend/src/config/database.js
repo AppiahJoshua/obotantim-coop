@@ -1,38 +1,46 @@
 const mysql = require('mysql2/promise');
 require('dotenv').config();
 
-// Parse and sanitize the DATABASE_URL to remove invalid parameters like ssl-mode
 const rawUrl = process.env.DATABASE_URL || '';
-let connectionConfig = rawUrl;
-let sslConfig = undefined;
+let poolConfig = {};
 
 if (rawUrl) {
   try {
     const dbUrl = new URL(rawUrl);
-    
-    // Extract ssl-mode settings if present
+
+    // Extract SSL preferences if provided in query params
     const sslMode = dbUrl.searchParams.get('ssl-mode') || dbUrl.searchParams.get('sslmode');
-    
-    // Delete them from the URL query string so mysql2 doesn't see them
+
+    // Strip out all SSL-related query params so mysql2 doesn't throw invalid option warnings
     dbUrl.searchParams.delete('ssl-mode');
     dbUrl.searchParams.delete('sslmode');
+    dbUrl.searchParams.delete('ssl');
 
+    // Base connection configuration parsed from URL
+    poolConfig = {
+      host: dbUrl.hostname,
+      port: dbUrl.port ? parseInt(dbUrl.port, 10) : 3306,
+      user: dbUrl.username,
+      password: dbUrl.password,
+      database: dbUrl.pathname.replace(/^\//, ''),
+    };
+
+    // Configure SSL properly without passing raw query strings to mysql2
     if (sslMode && sslMode.toUpperCase() !== 'DISABLED') {
-      sslConfig = {
-        rejectUnauthorized: sslMode.toUpperCase() === 'VERIFY_CA' || sslMode.toUpperCase() === 'VERIFY_IDENTITY'
+      poolConfig.ssl = {
+        rejectUnauthorized: sslMode.toUpperCase() === 'VERIFY_CA' || sslMode.toUpperCase() === 'VERIFY_IDENTITY',
       };
+    } else if (process.env.NODE_ENV === 'production') {
+      poolConfig.ssl = { rejectUnauthorized: false };
     }
-
-    connectionConfig = dbUrl.toString();
   } catch (e) {
-    // Fallback if URL parsing fails for any reason
-    console.warn('⚠️ Could not parse DATABASE_URL via URL parser, using raw string.');
+    console.warn('⚠️ Could not parse DATABASE_URL via URL parser, falling back to raw URI.');
+    poolConfig = { uri: rawUrl };
   }
 }
 
 const pool = mysql.createPool({
-  uri: connectionConfig,
-  ssl: sslConfig,
+  ...poolConfig,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
