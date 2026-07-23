@@ -28,8 +28,8 @@ const getRoles = async (req, res, next) => {
     // Format into standard role objects expected by frontend selectors
     const rolesList = Array.from(roleSet).map(roleKey => ({
       id: roleKey,
-      name: roleKey.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
-      label: roleKey.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
+      name: roleKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      label: roleKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
     }));
 
     res.json(rolesList);
@@ -41,11 +41,35 @@ const getRoles = async (req, res, next) => {
 // Get visibility flags and allowed roles for all widgets
 const getWidgetPermissions = async (req, res, next) => {
   try {
-    // Querying 'allowed_roles' which matches your actual schema
     const [rows] = await pool.query(
       'SELECT widget_key, label, is_visible, allowed_roles FROM dashboard_permissions'
     );
-    res.json(rows);
+
+    // Normalize rows so allowed_roles is ALWAYS an Array and is_visible is a Boolean
+    const sanitizedRows = rows.map(row => {
+      let parsedRoles = [];
+      
+      if (Array.isArray(row.allowed_roles)) {
+        parsedRoles = row.allowed_roles;
+      } else if (typeof row.allowed_roles === 'string') {
+        try {
+          parsedRoles = JSON.parse(row.allowed_roles);
+          if (!Array.isArray(parsedRoles)) {
+            parsedRoles = [parsedRoles];
+          }
+        } catch (e) {
+          parsedRoles = row.allowed_roles ? [row.allowed_roles] : [];
+        }
+      }
+
+      return {
+        ...row,
+        is_visible: Boolean(row.is_visible),
+        allowed_roles: parsedRoles
+      };
+    });
+
+    res.json(sanitizedRows);
   } catch (err) {
     next(err);
   }
