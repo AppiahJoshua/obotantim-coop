@@ -1,7 +1,8 @@
 const express = require('express');
+
 const usersRouter = express.Router();
 const dashboardRouter = express.Router();
-const permissionsRouter = express.Router(); 
+const permissionsRouter = express.Router();
 
 // Controllers
 const usersCtrl = require('../controllers/usersController');
