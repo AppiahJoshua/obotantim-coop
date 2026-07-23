@@ -3,10 +3,10 @@ const usersRouter = express.Router();
 const dashboardRouter = express.Router();
 const permissionsRouter = express.Router();
 
-// Controllers
-const usersCtrl = require('../controllers/usersController');
-const { getOverview } = require('../controllers/dashboardController');
-const permissionsCtrl = require('../controllers/permissionsController');
+// Controllers (Updated import paths to src/controllers)
+const usersCtrl = require('../src/controllers/usersController');
+const { getOverview } = require('../src/controllers/dashboardController');
+const permissionsCtrl = require('../src/controllers/permissionsController');
 
 // Middleware
 const { authenticate } = require('../middleware/auth');
