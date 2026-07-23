@@ -1,3 +1,4 @@
+import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../api/axios';
 
@@ -12,20 +13,24 @@ const AVAILABLE_WIDGETS = [
 export default function PermissionSettings() {
   const queryClient = useQueryClient();
 
-  // 1. Fetch user roles
+  // 1. Fetch available roles (Normalizes objects like [{id: 'admin'}] or string arrays)
   const { data: roles = ['customer_attender', 'content_editor', 'manager'] } = useQuery({
     queryKey: ['custom-roles-list'],
     queryFn: async () => {
       try {
         const res = await api.get('/admin/roles');
-        return Array.isArray(res.data) ? res.data : (res.data?.roles || ['customer_attender', 'content_editor', 'manager']);
+        const rawData = Array.isArray(res.data) ? res.data : (res.data?.roles || []);
+        
+        // Extract string IDs if backend returned objects [{id: 'admin', label: 'Admin'}]
+        const parsedRoles = rawData.map(r => (typeof r === 'object' && r !== null ? r.id || r.name : r));
+        return parsedRoles.length > 0 ? parsedRoles : ['customer_attender', 'content_editor', 'manager'];
       } catch {
         return ['customer_attender', 'content_editor', 'manager'];
       }
     },
   });
 
-  // 2. Fetch permission records matrix
+  // 2. Fetch widget permission configurations from backend
   const { data: databasePermissions = [] } = useQuery({
     queryKey: ['permissions-matrix'],
     queryFn: async () => {
@@ -37,70 +42,84 @@ export default function PermissionSettings() {
     },
   });
 
-  // 3. Mutate toggle state back to database live with optimistic cache updates
+  // 3. Mutate widget allowed_roles array live
   const toggleMutation = useMutation({
     mutationFn: (payload) => api.post('/admin/permissions/toggle', payload),
-    onMutate: async (newPermission) => {
+    onMutate: async ({ widget_key, role, is_visible }) => {
       await queryClient.cancelQueries({ queryKey: ['permissions-matrix'] });
       const previousPermissions = queryClient.getQueryData(['permissions-matrix']);
 
-      // Optimistically update based on per-role row schema
+      // Optimistically update the matching widget's allowed_roles array
       queryClient.setQueryData(['permissions-matrix'], (old = []) => {
-        const existingIndex = old.findIndex(
-          p => p.role === newPermission.role && p.widget_key === newPermission.widget_key
-        );
+        return old.map((widget) => {
+          if (widget.widget_key !== widget_key) return widget;
 
-        const targetValue = newPermission.is_visible ? 1 : 0;
+          const currentRoles = Array.isArray(widget.allowed_roles) ? widget.allowed_roles : [];
+          let updatedRoles;
 
-        if (existingIndex > -1) {
-          const updated = [...old];
-          updated[existingIndex] = {
-            ...updated[existingIndex],
-            is_visible: targetValue
+          if (is_visible) {
+            // Add role to allowed_roles if turning on
+            updatedRoles = currentRoles.includes(role) ? currentRoles : [...currentRoles, role];
+          } else {
+            // Remove role from allowed_roles if turning off
+            updatedRoles = currentRoles.filter(r => r !== role);
+          }
+
+          return {
+            ...widget,
+            allowed_roles: updatedRoles,
+            is_visible: updatedRoles.length > 0
           };
-          return updated;
-        } else {
-          return [
-            ...old,
-            {
-              role: newPermission.role,
-              widget_key: newPermission.widget_key,
-              is_visible: targetValue
-            }
-          ];
-        }
+        });
       });
 
       return { previousPermissions };
     },
-    onError: (err, newPermission, context) => {
+    onError: (err, variables, context) => {
       if (context?.previousPermissions) {
         queryClient.setQueryData(['permissions-matrix'], context.previousPermissions);
       }
     },
     onSettled: () => {
-      // Small timeout buffer to allow the remote database write to fully commit 
-      // before refetching, preventing race-condition snap-backs.
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ['permissions-matrix'] });
-        queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      }, 600);
+      // Invalidate queries directly without raw setTimeout timers
+      queryClient.invalidateQueries({ queryKey: ['permissions-matrix'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     }
   });
 
-  // Check if a widget is set to visible for a specific role
+  // Check if a widget's allowed_roles array includes the specified role
   const checkIsVisible = (role, widgetKey) => {
-    const found = databasePermissions.find(
-      p => p.role === role && p.widget_key === widgetKey
-    );
+    const widget = databasePermissions.find(p => p.widget_key === widgetKey);
     
-    // If an explicit database record exists, strictly respect its value (0 or 1).
-    if (found !== undefined && found !== null && found.is_visible !== undefined && found.is_visible !== null) {
-      return Number(found.is_visible) === 1 || found.is_visible === true;
+    // If no record exists yet, default to visible
+    if (!widget) return true;
+
+    const allowedRoles = Array.isArray(widget.allowed_roles) ? widget.allowed_roles : [];
+    return allowedRoles.includes(role);
+  };
+
+  // Toggle handler for individual widget per role
+  const handleToggle = (roleName, widget) => {
+    const isCurrentlyVisible = checkIsVisible(roleName, widget.key);
+    const existingWidget = databasePermissions.find(p => p.widget_key === widget.key);
+    const currentRoles = existingWidget && Array.isArray(existingWidget.allowed_roles) 
+      ? existingWidget.allowed_roles 
+      : roles;
+
+    let updatedRoles;
+    if (isCurrentlyVisible) {
+      updatedRoles = currentRoles.filter(r => r !== roleName);
+    } else {
+      updatedRoles = [...new Set([...currentRoles, roleName])];
     }
-    
-    // Default to true only if no record has ever been created or synced yet
-    return true;
+
+    toggleMutation.mutate({
+      widget_key: widget.key,
+      label: widget.label,
+      is_visible: updatedRoles.length > 0,
+      allowed_roles: updatedRoles,
+      role: roleName // kept for optimistic update helper
+    });
   };
 
   // Bulk toggle handler for "All On" / "All Off" per role
@@ -108,16 +127,12 @@ export default function PermissionSettings() {
     AVAILABLE_WIDGETS.forEach((widget) => {
       const isCurrentlyVisible = checkIsVisible(roleName, widget.key);
       if (isCurrentlyVisible !== targetState) {
-        toggleMutation.mutate({
-          role: roleName,
-          widget_key: widget.key,
-          is_visible: targetState,
-        });
+        handleToggle(roleName, widget);
       }
     });
   };
 
-  const isPending = toggleMutation.isPending || toggleMutation.isLoading;
+  const isPending = toggleMutation.isPending;
 
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
@@ -131,7 +146,7 @@ export default function PermissionSettings() {
             {/* Header with All On / All Off bulk action controls */}
             <div className="flex justify-between items-center mb-3">
               <h3 className="text-xs font-bold text-blue-600 uppercase tracking-wider">
-                Role: {roleName.replace(/_/g, ' ')}
+                Role: {String(roleName).replace(/_/g, ' ')}
               </h3>
               <div className="flex gap-2">
                 <button
@@ -162,12 +177,8 @@ export default function PermissionSettings() {
                     <button
                       type="button"
                       disabled={isPending}
-                      aria-label={`Toggle ${widget.label} for ${roleName.replace(/_/g, ' ')}`}
-                      onClick={() => toggleMutation.mutate({
-                        role: roleName,
-                        widget_key: widget.key,
-                        is_visible: !visible
-                      })}
+                      aria-label={`Toggle ${widget.label} for ${String(roleName).replace(/_/g, ' ')}`}
+                      onClick={() => handleToggle(roleName, widget)}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
                         visible ? 'bg-blue-600' : 'bg-gray-300'
                       } ${isPending ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}`}
