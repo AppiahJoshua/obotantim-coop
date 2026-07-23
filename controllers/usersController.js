@@ -55,6 +55,7 @@ const update = async (req, res, next) => {
       return res.status(400).json({ error: 'You cannot deactivate your own account.' });
     }
 
+    // Explicitly handle boolean or numeric conversion for is_active
     const isActiveVal = is_active !== undefined ? (is_active ? 1 : 0) : null;
 
     const [result] = await pool.query(
@@ -65,7 +66,13 @@ const update = async (req, res, next) => {
          is_active = COALESCE(?, is_active),
          updated_at = NOW()
        WHERE id = ?`,
-      [name || null, email || null, role || null, isActiveVal, req.params.id]
+      [
+        name !== undefined ? name : null, 
+        email !== undefined ? email : null, 
+        role !== undefined ? role : null, 
+        isActiveVal, 
+        req.params.id
+      ]
     );
 
     if (result.affectedRows === 0) {
