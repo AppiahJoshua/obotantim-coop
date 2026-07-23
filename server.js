@@ -90,7 +90,8 @@ app.use('/api/announcements', announcementsRouter);
 app.use('/api/admin/users', usersRouter);
 app.use('/api/admin/dashboard', setNoCache, dashboardRouter);
 app.use('/api/admin/permissions', permissionsRouter);
-// Added setNoCache here to force 200 OK live responses instead of 304 browser caching
+// Route alias so requests to /api/admin/roles also hit permissionsRouter
+app.use('/api/admin/roles', permissionsRouter);
 app.use('/api/admin/notifications', setNoCache, notificationsRoutes);
 
 // ── Health Check ──────────────────────────────────────────────
