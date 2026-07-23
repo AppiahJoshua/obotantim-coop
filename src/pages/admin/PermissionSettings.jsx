@@ -50,11 +50,13 @@ export default function PermissionSettings() {
           p => p.role === newPermission.role && p.widget_key === newPermission.widget_key
         );
 
+        const targetValue = newPermission.is_visible ? 1 : 0;
+
         if (existingIndex > -1) {
           const updated = [...old];
           updated[existingIndex] = {
             ...updated[existingIndex],
-            is_visible: newPermission.is_visible ? 1 : 0
+            is_visible: targetValue
           };
           return updated;
         } else {
@@ -63,7 +65,7 @@ export default function PermissionSettings() {
             {
               role: newPermission.role,
               widget_key: newPermission.widget_key,
-              is_visible: newPermission.is_visible ? 1 : 0
+              is_visible: targetValue
             }
           ];
         }
@@ -91,8 +93,15 @@ export default function PermissionSettings() {
     const found = databasePermissions.find(
       p => p.role === role && p.widget_key === widgetKey
     );
-    if (!found) return true; // Default to true if not explicitly disabled in DB
-    return Number(found.is_visible) === 1 || found.is_visible === true;
+    
+    // If an explicit database record exists, strictly respect its value (0 or 1).
+    // This allows all-off configurations to persist correctly without forced fallbacks.
+    if (found !== undefined && found !== null && found.is_visible !== undefined && found.is_visible !== null) {
+      return Number(found.is_visible) === 1 || found.is_visible === true;
+    }
+    
+    // Default to true only if no record has ever been created or synced yet
+    return true;
   };
 
   const isPending = toggleMutation.isPending || toggleMutation.isLoading;
