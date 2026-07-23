@@ -3,12 +3,12 @@ const usersRouter = express.Router();
 const dashboardRouter = express.Router();
 const permissionsRouter = express.Router();
 
-// Controllers (Corrected relative path from src/routes to src/controllers)
+// Controllers (Pointing to root controllers folder)
 const usersCtrl = require('../controllers/usersController');
 const { getOverview } = require('../controllers/dashboardController');
 const permissionsCtrl = require('../controllers/permissionsController');
 
-// Middleware
+// Middleware (Pointing to root middleware folder)
 const { authenticate } = require('../middleware/auth');
 const { isSuperAdmin } = require('../middleware/rbac');
 
