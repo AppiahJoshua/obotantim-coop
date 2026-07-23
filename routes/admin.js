@@ -19,7 +19,10 @@ usersRouter.put('/:id', authenticate, isSuperAdmin, usersCtrl.update);
 usersRouter.put('/:id/reset-password', authenticate, isSuperAdmin, usersCtrl.resetPassword);
 usersRouter.delete('/:id', authenticate, isSuperAdmin, usersCtrl.remove);
 
-// ── Dynamic Dashboard Layout Settings ────────────────────────────────
+// ── Dynamic Dashboard Layout & Role Settings ──────────────────────────
+// GET: Accessible by ALL authenticated staff (returns list of roles)
+permissionsRouter.get('/roles', authenticate, permissionsCtrl.getRoles);
+
 // GET: Accessible by ALL authenticated staff (so their layout knows what UI elements to display)
 permissionsRouter.get('/', authenticate, permissionsCtrl.getWidgetPermissions);
 
