@@ -95,13 +95,26 @@ export default function PermissionSettings() {
     );
     
     // If an explicit database record exists, strictly respect its value (0 or 1).
-    // This allows all-off configurations to persist correctly without forced fallbacks.
     if (found !== undefined && found !== null && found.is_visible !== undefined && found.is_visible !== null) {
       return Number(found.is_visible) === 1 || found.is_visible === true;
     }
     
     // Default to true only if no record has ever been created or synced yet
     return true;
+  };
+
+  // Bulk toggle handler for "All On" / "All Off" per role
+  const toggleAllForRole = (roleName, targetState) => {
+    AVAILABLE_WIDGETS.forEach((widget) => {
+      const isCurrentlyVisible = checkIsVisible(roleName, widget.key);
+      if (isCurrentlyVisible !== targetState) {
+        toggleMutation.mutate({
+          role: roleName,
+          widget_key: widget.key,
+          is_visible: targetState,
+        });
+      }
+    });
   };
 
   const isPending = toggleMutation.isPending || toggleMutation.isLoading;
@@ -114,9 +127,31 @@ export default function PermissionSettings() {
       <div className="space-y-6">
         {roles.filter(r => r !== 'super_admin').map((roleName) => (
           <div key={roleName} className="border-b border-gray-100 pb-6 last:border-0">
-            <h3 className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-3">
-              Role: {roleName.replace(/_/g, ' ')}
-            </h3>
+            
+            {/* Header with All On / All Off bulk action controls */}
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-xs font-bold text-blue-600 uppercase tracking-wider">
+                Role: {roleName.replace(/_/g, ' ')}
+              </h3>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => toggleAllForRole(roleName, true)}
+                  className="text-[10px] font-semibold bg-blue-50 text-blue-600 px-2.5 py-1 rounded hover:bg-blue-100 transition-colors disabled:opacity-50"
+                >
+                  All On
+                </button>
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => toggleAllForRole(roleName, false)}
+                  className="text-[10px] font-semibold bg-gray-100 text-gray-600 px-2.5 py-1 rounded hover:bg-gray-200 transition-colors disabled:opacity-50"
+                >
+                  All Off
+                </button>
+              </div>
+            </div>
             
             <div className="grid md:grid-cols-2 gap-4">
               {AVAILABLE_WIDGETS.map((widget) => {
