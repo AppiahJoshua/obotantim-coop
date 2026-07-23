@@ -1,5 +1,43 @@
 const pool = require('../config/database');
 
+// Get distinct roles available or used across permissions
+const getRoles = async (req, res, next) => {
+  try {
+    const [rows] = await pool.query('SELECT allowed_roles FROM dashboard_permissions');
+    
+    // Extract unique roles across all widget JSON configurations
+    const roleSet = new Set();
+    rows.forEach(row => {
+      try {
+        const roles = typeof row.allowed_roles === 'string' 
+          ? JSON.parse(row.allowed_roles) 
+          : row.allowed_roles;
+        if (Array.isArray(roles)) {
+          roles.forEach(r => roleSet.add(r));
+        }
+      } catch (e) {
+        // Ignore parse errors on individual row
+      }
+    });
+
+    // Fallback defaults if no roles exist in DB yet
+    if (roleSet.size === 0) {
+      ['super_admin', 'admin', 'staff', 'member'].forEach(r => roleSet.add(r));
+    }
+
+    // Format into standard role objects expected by frontend selectors
+    const rolesList = Array.from(roleSet).map(roleKey => ({
+      id: roleKey,
+      name: roleKey.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      label: roleKey.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
+    }));
+
+    res.json(rolesList);
+  } catch (err) {
+    next(err);
+  }
+};
+
 // Get visibility flags and allowed roles for all widgets
 const getWidgetPermissions = async (req, res, next) => {
   try {
@@ -45,4 +83,4 @@ const toggleWidgetVisibility = async (req, res, next) => {
   }
 };
 
-module.exports = { getWidgetPermissions, toggleWidgetVisibility };
+module.exports = { getRoles, getWidgetPermissions, toggleWidgetVisibility };
