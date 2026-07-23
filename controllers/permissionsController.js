@@ -3,7 +3,7 @@ const pool = require('../config/database');
 // Get visibility flags for all roles (or a specific role)
 const getWidgetPermissions = async (req, res, next) => {
   try {
-    const [rows] = await pool.query('SELECT role_name, widget_key, is_visible FROM dashboard_permissions');
+    const [rows] = await pool.query('SELECT role, widget_key, is_visible FROM dashboard_permissions');
     res.json(rows);
   } catch (err) {
     next(err);
@@ -13,14 +13,15 @@ const getWidgetPermissions = async (req, res, next) => {
 // Toggle a specific widget's visibility for a specific role
 const toggleWidgetVisibility = async (req, res, next) => {
   try {
-    const { role_name, widget_key, is_visible } = req.body;
+    const { role_name, role: roleField, widget_key, is_visible } = req.body;
+    const role = role_name || roleField;
 
     // Use an UPSERT statement to insert a new setting or change an existing one
     await pool.query(`
-      INSERT INTO dashboard_permissions (role_name, widget_key, is_visible)
+      INSERT INTO dashboard_permissions (role, widget_key, is_visible)
       VALUES (?, ?, ?)
       ON DUPLICATE KEY UPDATE is_visible = VALUES(is_visible)
-    `, [role_name, widget_key, is_visible ? 1 : 0]);
+    `, [role, widget_key, is_visible ? 1 : 0]);
 
     res.json({ message: 'Permissions updated successfully.' });
   } catch (err) {
