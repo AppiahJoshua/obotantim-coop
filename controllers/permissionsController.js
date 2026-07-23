@@ -1,6 +1,6 @@
 const pool = require('../config/database');
 
-// Get visibility flags for all widgets
+// Get visibility flags for all widgets across all roles
 const getWidgetPermissions = async (req, res, next) => {
   try {
     const [rows] = await pool.query('SELECT role, widget_key, label, is_visible, allowed_roles FROM dashboard_permissions');
@@ -10,26 +10,20 @@ const getWidgetPermissions = async (req, res, next) => {
   }
 };
 
-// Toggle a specific widget's visibility or configuration
+// Toggle a specific widget's visibility for a specific role
 const toggleWidgetVisibility = async (req, res, next) => {
   try {
     const { role, widget_key, label, is_visible, allowed_roles } = req.body;
 
-    // Ensure role and widget_key are provided
     if (!role || !widget_key) {
       return res.status(400).json({ error: 'Role and widget_key are required.' });
     }
 
-    // Default allowed_roles to a valid empty JSON array string if not provided
     const rolesJson = allowed_roles ? JSON.stringify(allowed_roles) : JSON.stringify([]);
-
-    // Fallback label if not explicitly provided in the payload
     const widgetLabel = label || widget_key;
-
-    // Explicitly parse boolean/string/number values into 1 or 0
     const visibilityValue = (is_visible === true || is_visible === 1 || is_visible === '1' || is_visible === 'true') ? 1 : 0;
 
-    // Use an UPSERT statement scoped by both role and widget_key
+    // UPSERT scoped by both role and widget_key
     await pool.query(`
       INSERT INTO dashboard_permissions (role, widget_key, label, is_visible, allowed_roles)
       VALUES (?, ?, ?, ?, ?)
