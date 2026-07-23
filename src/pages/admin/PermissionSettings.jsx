@@ -118,6 +118,7 @@ export default function PermissionSettings() {
                     <button
                       type="button"
                       disabled={isPending}
+                      aria-label={`Toggle ${widget.label} for ${roleName.replace(/_/g, ' ')}`}
                       onClick={() => toggleMutation.mutate({
                         role: roleName,
                         widget_key: widget.key,
