@@ -3,9 +3,9 @@ const pool = require('../config/database');
 // ── GET /api/admin/dashboard ──────────────────────────────────
 const getOverview = async (req, res, next) => {
   try {
-    // 1. Fetch which widgets are explicitly allowed for this staff user's role
+    // 1. Fetch widgets where the user's role is allowed in the comma-separated list
     const [permRows] = await pool.query(
-      'SELECT widget_key FROM dashboard_permissions WHERE role = ? AND is_visible = 1',
+      'SELECT widget_key FROM dashboard_permissions WHERE FIND_IN_SET(?, allowed_roles) AND is_visible = 1',
       [req.user.role]
     );
     
