@@ -1,17 +1,18 @@
 const express = require('express');
+const path = require('path');
 
 const usersRouter = express.Router();
 const dashboardRouter = express.Router();
 const permissionsRouter = express.Router();
 
-// Controllers
-const usersCtrl = require('../controllers/usersController');
-const { getOverview } = require('../controllers/dashboardController');
-const permissionsCtrl = require('../controllers/permissionsController');
+// Controllers (Absolute resolution based on runtime root structure)
+const usersCtrl = require(path.join(__dirname, '../controllers/usersController'));
+const { getOverview } = require(path.join(__dirname, '../controllers/dashboardController'));
+const permissionsCtrl = require(path.join(__dirname, '../controllers/permissionsController'));
 
 // Middleware
-const { authenticate } = require('../middleware/auth');
-const { isSuperAdmin } = require('../middleware/rbac');
+const { authenticate } = require(path.join(__dirname, '../middleware/auth'));
+const { isSuperAdmin } = require(path.join(__dirname, '../middleware/rbac'));
 
 // ── User Management Routes (Super Admin Only) ────────────────────────
 usersRouter.get('/', authenticate, isSuperAdmin, usersCtrl.getAll);
