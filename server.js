@@ -5,8 +5,9 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 
-// Explicitly load .env from the root directory
+// Explicitly load .env from the root directory and fall back to backend/.env for local testing
 require('dotenv').config({ path: path.join(__dirname, '.env') });
+require('dotenv').config({ path: path.join(__dirname, 'backend', '.env') });
 
 const app = express();
 
