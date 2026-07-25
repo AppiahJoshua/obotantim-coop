@@ -300,5 +300,5 @@ INSERT INTO products (category, title, description, icon, interest_rate, sort_or
 -- ── Seed Data: Default Testimonials ───────────────────────────
 INSERT INTO testimonials (name, location, message, sort_order) VALUES
 ('Akosua Mensah',  'Techiman Market',    'I started with the Daakye Savings account two years ago. Today, I have a proper shop and I''m supporting my children''s education. Obotantim changed my life.', 1),
-('Kwame Asante',   'Nkoranza Road',      'The group loan helped our market women association buy goods in bulk. We saved 30% on costs and our profits doubled. Truly a blessing.',                           2),
-('Abena Frimpong', 'Techiman New Town',  'When I needed money urgently for my son''s BECE fees, Obotantim processed my education loan in two days. God bless them.',                                    3);
+('Kwame Asante',   'Nkoranza Road',      'The group loan helped our market women association buy goods in bulk. We saved 30% on costs and our profits doubled. Truly a blessing.',                             2),
+('Abena Frimpong', 'Techiman New Town',  'When I needed money urgently for my son''s BECE fees, Obotantim processed my education loan in two days. God bless them.',                                        3);
