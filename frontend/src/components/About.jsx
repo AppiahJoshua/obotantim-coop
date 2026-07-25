@@ -28,16 +28,20 @@ export default function About() {
 
           {/* Image side */}
           <div className={`relative transition-all duration-700 delay-100 ${inView ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-8'}`}>
-            <div className="relative rounded-3xl overflow-hidden aspect-[4/3] shadow-2xl">
+            <div className="relative rounded-3xl overflow-hidden aspect-[4/3] shadow-2xl bg-gray-100">
               <img
                 src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&q=80"
                 alt="Cooperative members meeting"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover relative z-10"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                }}
               />
-              <div className="absolute inset-0 bg-primary/10" />
+              {/* Added pointer-events-none to ensure the overlay doesn't block the image */}
+              <div className="absolute inset-0 bg-emerald-900/10 pointer-events-none z-20" />
             </div>
             {/* Floating badge */}
-            <div className="absolute -bottom-6 -right-6 bg-primary rounded-2xl p-6 text-white shadow-xl">
+            <div className="absolute -bottom-6 -right-6 bg-primary rounded-2xl p-6 text-white shadow-xl z-30">
               <p className="font-sans font-bold text-3xl">10+</p>
               <p className="text-sm text-white/80">Years Serving</p>
               <p className="text-sm text-white/80">Techiman</p>
