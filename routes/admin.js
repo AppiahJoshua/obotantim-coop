@@ -21,12 +21,10 @@ usersRouter.put('/:id/reset-password', authenticate, isSuperAdmin, usersCtrl.res
 usersRouter.delete('/:id', authenticate, isSuperAdmin, usersCtrl.remove);
 
 // ── Dynamic Dashboard Layout & Role Settings ──────────────────────────
-permissionsRouter.get('/roles', authenticate, permissionsCtrl.getRoles);
-permissionsRouter.get('/', authenticate, permissionsCtrl.getWidgetPermissions);
-permissionsRouter.post('/toggle', authenticate, isSuperAdmin, permissionsCtrl.toggleWidgetVisibility);
+permissionsRouter.get('/', authenticate, permissionsCtrl.getPermissions);
+permissionsRouter.post('/toggle', authenticate, isSuperAdmin, permissionsCtrl.togglePermission);
 
 // ── Dashboard Overview Route ─────────────────────────────────────────
 dashboardRouter.get('/', authenticate, getOverview);
 
 module.exports = { usersRouter, dashboardRouter, permissionsRouter };
-// updated route path
