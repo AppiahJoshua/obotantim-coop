@@ -25,7 +25,7 @@ CREATE TABLE admin_users (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ── 2. UI Dashboard Permissions (RBAC) ────────────────────────
-CREATE TABLE dashboard_permissions (
+CREATE TABLE permissions (
     id             INT AUTO_INCREMENT PRIMARY KEY,
     widget_key     VARCHAR(100) NOT NULL UNIQUE,
     label          VARCHAR(100) NOT NULL,
@@ -65,27 +65,27 @@ CREATE TABLE gallery (
 
 -- ── 5. Service Registrations ─────────────────────────────────
 CREATE TABLE registrations (
-  id                INT AUTO_INCREMENT PRIMARY KEY,
-  full_name         VARCHAR(100) NOT NULL,
-  phone             VARCHAR(20) NOT NULL,
-  gender            VARCHAR(20) DEFAULT NULL,
-  email             VARCHAR(100),
-  date_of_birth     DATE NULL,
-  ghana_card        VARCHAR(50),
-  occupation        VARCHAR(100),
-  address           TEXT,
-  service_type      ENUM('loan','savings','membership') NOT NULL,
-  loan_amount       DECIMAL(12,2),
-  notes             TEXT,
-  photo_url         VARCHAR(500),
-  photo_public_id   VARCHAR(255),
-  status            ENUM('new','contacted','approved','completed','rejected') NOT NULL DEFAULT 'new',
-  status_note       TEXT,
-  reviewed_by       INT,
-  reviewed_at       TIMESTAMP NULL DEFAULT NULL,
-  created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (reviewed_by) REFERENCES admin_users(id) ON DELETE SET NULL
+    id                INT AUTO_INCREMENT PRIMARY KEY,
+    full_name         VARCHAR(100) NOT NULL,
+    phone             VARCHAR(20) NOT NULL,
+    gender            VARCHAR(20) DEFAULT NULL,
+    email             VARCHAR(100),
+    date_of_birth     DATE NULL,
+    ghana_card        VARCHAR(50),
+    occupation        VARCHAR(100),
+    address           TEXT,
+    service_type      ENUM('loan','savings','membership') NOT NULL,
+    loan_amount       DECIMAL(12,2),
+    notes             TEXT,
+    photo_url         VARCHAR(500),
+    photo_public_id   VARCHAR(255),
+    status            ENUM('new','contacted','approved','completed','rejected') NOT NULL DEFAULT 'new',
+    status_note       TEXT,
+    reviewed_by       INT,
+    reviewed_at       TIMESTAMP NULL DEFAULT NULL,
+    created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (reviewed_by) REFERENCES admin_users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ── 6. Contact Messages ──────────────────────────────────────
@@ -271,7 +271,7 @@ VALUES (
 );
 
 -- ── Seed Data: Initial Permissions Setup ─────────────────────
-INSERT IGNORE INTO dashboard_permissions (widget_key, label, role, is_visible) VALUES
+INSERT IGNORE INTO permissions (widget_key, label, role, is_visible) VALUES
 ('analytics_summary', 'Analytics Overview Card', 'all', 1),
 ('registrations_table', 'Member Registrations Table', 'all', 1),
 ('recent_messages', 'Contact Messages Panel', 'all', 1),
@@ -290,15 +290,15 @@ WHERE NOT EXISTS (SELECT 1 FROM director_message LIMIT 1);
 INSERT INTO products (category, title, description, icon, interest_rate, sort_order) VALUES
 ('savings', 'Daakye Savings',        'Plan for your future with our long-term savings account. Competitive interest rates with flexible deposit options.',          'piggy-bank',    '12% p.a.', 1),
 ('savings', 'Daadaa Business',       'Purpose-built savings for traders and business owners. Manage working capital and earn while you save.',                     'briefcase',     '10% p.a.', 2),
-('savings', 'Mfaso & Normal Susu',  'Traditional susu reimagined — make daily or weekly contributions and access your savings at cycle end.',                      'coins',         'Flexible',  3),
-('savings', 'Nkakrankakra',         'Our micro-savings product for low-income members. Start with as little as GHS 5 per day.',                                    'wallet',        '8% p.a.',   4),
+('savings', 'Mfaso & Normal Susu',   'Traditional susu reimagined — make daily or weekly contributions and access your savings at cycle end.',                      'coins',         'Flexible',  3),
+('savings', 'Nkakrankakra',          'Our micro-savings product for low-income members. Start with as little as GHS 5 per day.',                                    'wallet',        '8% p.a.',   4),
 ('loans',   'Trade & Personal Loans','Fast, accessible loans for traders and individuals. Minimal documentation with quick approval for members in good standing.', 'hand-coins',    '2.5% p.m.', 5),
-('loans',   'Pragia & Motor King Financing','Specialized financing for commercial vehicle operators — trotros, motor kings, and cargo trucks.',                    'truck',         '2% p.m.',   6),
+('loans',   'Pragia & Motor King Financing','Specialized financing for commercial vehicle operators — trotros, motor kings, and cargo trucks.',                  'truck',         '2% p.m.',   6),
 ('loans',   'Education Loans',       'Cover tuition, boarding, and related expenses at affordable rates.',                                                         'graduation-cap','1.5% p.m.', 7),
 ('loans',   'Group Loans',           'Solidarity lending for groups of 5–20 members. Lower rates, shared accountability, stronger communities.',                   'users',         '1.8% p.m.', 8);
 
 -- ── Seed Data: Default Testimonials ───────────────────────────
 INSERT INTO testimonials (name, location, message, sort_order) VALUES
 ('Akosua Mensah',  'Techiman Market',    'I started with the Daakye Savings account two years ago. Today, I have a proper shop and I''m supporting my children''s education. Obotantim changed my life.', 1),
-('Kwame Asante',   'Nkoranza Road',      'The group loan helped our market women association buy goods in bulk. We saved 30% on costs and our profits doubled. Truly a blessing.',                             2),
-('Abena Frimpong', 'Techiman New Town',  'When I needed money urgently for my son''s BECE fees, Obotantim processed my education loan in two days. God bless them.',                                        3);
+('Kwame Asante',   'Nkoranza Road',      'The group loan helped our market women association buy goods in bulk. We saved 30% on costs and our profits doubled. Truly a blessing.',                           2),
+('Abena Frimpong', 'Techiman New Town',  'When I needed money urgently for my son''s BECE fees, Obotantim processed my education loan in two days. God bless them.',                                    3);
