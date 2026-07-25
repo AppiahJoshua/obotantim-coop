@@ -1,3 +1,11 @@
+/**
+ * Root entry point for the application
+ * This file handles:
+ * - Environment configuration from multiple sources
+ * - Route imports and server initialization
+ * - Static file serving for production deployments
+ */
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -5,7 +13,7 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 
-// Explicitly load .env from the root directory and fall back to backend/.env for local testing
+// Load environment variables from root .env and backend/.env
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 require('dotenv').config({ path: path.join(__dirname, 'backend', '.env') });
 
@@ -25,7 +33,6 @@ app.use(
     },
   })
 );
-
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true,
@@ -63,14 +70,14 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 // ── Routes ────────────────────────────────────────────────────
-const authRoutes = require('./routes/auth');
-const productsRoutes = require('./routes/products');
-const { galleryRouter } = require('./routes/gallery');
-const registrationsRoutes = require('./routes/registrations');
-const messagesRoutes = require('./routes/messages');
-const { directorRouter, testimonialsRouter, announcementsRouter } = require('./routes/content');
-const { usersRouter, dashboardRouter, permissionsRouter } = require('./routes/admin');
-const notificationsRoutes = require('./routes/notificationsRoutes');
+const authRoutes = require('./backend/routes/auth');
+const productsRoutes = require('./backend/routes/products');
+const { galleryRouter } = require('./backend/routes/gallery');
+const registrationsRoutes = require('./backend/routes/registrations');
+const messagesRoutes = require('./backend/routes/messages');
+const { directorRouter, testimonialsRouter, announcementsRouter } = require('./backend/routes/content');
+const { usersRouter, dashboardRouter, permissionsRouter } = require('./backend/routes/admin');
+const notificationsRoutes = require('./backend/routes/notificationsRoutes');
 
 // Helper to prevent response caching on dynamic API data
 const setNoCache = (req, res, next) => {
