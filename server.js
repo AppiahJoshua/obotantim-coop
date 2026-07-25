@@ -70,14 +70,14 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 // ── Routes ────────────────────────────────────────────────────
-const authRoutes = require('./backend/routes/auth');
-const productsRoutes = require('./backend/routes/products');
-const { galleryRouter } = require('./backend/routes/gallery');
-const registrationsRoutes = require('./backend/routes/registrations');
-const messagesRoutes = require('./backend/routes/messages');
-const { directorRouter, testimonialsRouter, announcementsRouter } = require('./backend/routes/content');
-const { usersRouter, dashboardRouter, permissionsRouter } = require('./backend/routes/admin');
-const notificationsRoutes = require('./backend/routes/notificationsRoutes');
+const authRoutes = require('./routes/auth');
+const productsRoutes = require('./routes/products');
+const { galleryRouter } = require('./routes/gallery');
+const registrationsRoutes = require('./routes/registrations');
+const messagesRoutes = require('./routes/messages');
+const { directorRouter, testimonialsRouter, announcementsRouter } = require('./routes/content');
+const { usersRouter, dashboardRouter, permissionsRouter } = require('./routes/admin');
+const notificationsRoutes = require('./routes/notificationsRoutes');
 
 // Helper to prevent response caching on dynamic API data
 const setNoCache = (req, res, next) => {
