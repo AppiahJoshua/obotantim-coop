@@ -1,4 +1,5 @@
-const pool = require('../../config/db'); // Adjust path if your DB config is located elsewhere
+const path = require('path');
+const pool = require(path.resolve(__dirname, '../config/db'));
 
 /**
  * Fetch all widget permissions matrix
