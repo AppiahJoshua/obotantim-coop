@@ -1,4 +1,4 @@
-const pool = require('../config/db'); // Adjust path if your DB config is located elsewhere
+const pool = require('../../config/db'); // Adjust path if your DB config is located elsewhere
 
 /**
  * Fetch all widget permissions matrix
