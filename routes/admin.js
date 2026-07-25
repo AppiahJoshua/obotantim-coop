@@ -29,3 +29,4 @@ permissionsRouter.post('/toggle', authenticate, isSuperAdmin, permissionsCtrl.to
 dashboardRouter.get('/', authenticate, getOverview);
 
 module.exports = { usersRouter, dashboardRouter, permissionsRouter };
+// updated route path
