@@ -3,9 +3,6 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
-const fs = require('fs');
-const path = require('path');
-const db = require('./config/database'); // Imports your PostgreSQL database pool
 require('dotenv').config();
 
 const app = express();
@@ -43,23 +40,6 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // ── Logging ───────────────────────────────────────────────────
 if (process.env.NODE_ENV !== 'test') {
   app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
-}
-
-// ── Auto Database Schema Initialization ───────────────────────
-async function initializeDatabaseSchema() {
-  try {
-    const schemaPath = path.join(__dirname, 'src', 'schema.sql');
-    if (fs.existsSync(schemaPath)) {
-      const sql = fs.readFileSync(schemaPath, 'utf8');
-      console.log('🔄 Verifying and executing database schema...');
-      await db.query(sql);
-      console.log('✅ Database tables and seed data are ready!');
-    } else {
-      console.warn('⚠️ schema.sql file not found at src/schema.sql');
-    }
-  } catch (err) {
-    console.error('ℹ️ Database initialization note:', err.message);
-  }
 }
 
 // ── Routes ────────────────────────────────────────────────────
@@ -107,13 +87,10 @@ app.use((err, req, res, next) => {
 
 // ── Start ─────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
-
-initializeDatabaseSchema().then(() => {
-  app.listen(PORT, () => {
-    console.log(`\n🏦 Obotantim Cooperative API`);
-    console.log(`🚀 Server running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
-    console.log(`🔗 Health check: http://localhost:${PORT}/health\n`);
-  });
+app.listen(PORT, () => {
+  console.log(`\n🏦 Obotantim Cooperative API`);
+  console.log(`🚀 Server running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
+  console.log(`🔗 Health check: http://localhost:${PORT}/health\n`);
 });
 
 module.exports = app;
