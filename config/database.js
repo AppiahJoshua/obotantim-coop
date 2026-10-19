@@ -1,52 +1,25 @@
-const mysql = require('mysql2/promise');
+const { Pool } = require('pg');
 const path = require('path');
 
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 require('dotenv').config({ path: path.join(__dirname, '..', 'backend', '.env') });
 
-const rawUrl = process.env.DATABASE_URL || '';
-let poolConfig = {};
+const rawUrl = process.env.DATABASE_URL || 'postgres://avnadmin:AVNS_sn4xcV6EoXpU3KYY8ir@pg-121e710e-joeappalu-1b1b.a.aivencloud.com:28376/defaultdb?sslmode=require'; // Fallback to your Aiven PostgreSQL URL[cite: 1]
 
-if (rawUrl) {
-  try {
-    const dbUrl = new URL(rawUrl);
-    poolConfig = {
-      host: dbUrl.hostname,
-      port: dbUrl.port ? parseInt(dbUrl.port, 10) : 3306,
-      user: dbUrl.username,
-      password: dbUrl.password,
-      database: dbUrl.pathname.replace(/^\//, ''),
-      ssl: process.env.NODE_ENV === 'production'
-        ? { rejectUnauthorized: false }
-        : false,
-    };
-  } catch (error) {
-    console.warn('⚠️ Could not parse DATABASE_URL; continuing without a startup connection config.');
+const pool = new Pool({
+  connectionString: rawUrl,
+  ssl: {
+    rejectUnauthorized: false
   }
-} else {
-  console.warn('⚠️ DATABASE_URL is not set. The app will still boot, but database-backed routes will fail until the environment is configured.');
-}
-
-const pool = mysql.createPool({
-  ...poolConfig,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-  timezone: '+00:00',
 });
 
-// Test connection on startup only when a URL is present
-if (rawUrl) {
-  pool.getConnection()
-    .then((conn) => {
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('✅ MySQL database connected');
-      }
-      conn.release();
-    })
-    .catch((err) => {
-      console.error('❌ MySQL connection error:', err.message);
-    });
-}
+// Test connection on startup
+pool.query('SELECT NOW()')
+  .then(() => {
+    console.log('✅ PostgreSQL database connected successfully');
+  })
+  .catch((err) => {
+    console.error('❌ PostgreSQL connection error:', err.message);
+  });
 
 module.exports = pool;
