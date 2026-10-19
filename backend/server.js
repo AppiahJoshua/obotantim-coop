@@ -85,12 +85,24 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ── Start ─────────────────────────────────────────────────────
+// ── Start Server & Seed Database ──────────────────────────────
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+
+app.listen(PORT, async () => {
   console.log(`\n🏦 Obotantim Cooperative API`);
   console.log(`🚀 Server running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
   console.log(`🔗 Health check: http://localhost:${PORT}/health\n`);
+
+  // Run database initialization / table seeding on startup
+  try {
+    const seed = require('./utils/seed');
+    if (typeof seed === 'function') {
+      await seed();
+      console.log('✅ Database auto-seeded successfully');
+    }
+  } catch (seedErr) {
+    console.log('ℹ️ Seed step skipped or executed:', seedErr.message);
+  }
 });
 
 module.exports = app;
