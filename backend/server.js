@@ -3,28 +3,15 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const fs = require('fs');
 const path = require('path');
-
-// Explicitly load .env from the root directory and backend directory
-require('dotenv').config({ path: path.join(__dirname, '../.env') });
-require('dotenv').config({ path: path.join(__dirname, '.env') });
+const db = require('./config/database'); // Imports your PostgreSQL database pool
+require('dotenv').config();
 
 const app = express();
 
 // ── Security ─────────────────────────────────────────────────
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", "data:", "https://res.cloudinary.com"],
-        connectSrc: ["'self'"],
-      },
-    },
-  })
-);
+app.use(helmet());
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true,
@@ -32,20 +19,17 @@ app.use(cors({
 app.set('trust proxy', 1);
 
 // ── Rate Limiting ─────────────────────────────────────────────
-const isDev = process.env.NODE_ENV !== 'production';
-
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: isDev ? 10000 : 100, // High limit for development
+  max: 100,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => isDev && (req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === '::ffff:127.0.0.1'),
   message: { error: 'Too many requests. Please try again later.' },
 });
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: isDev ? 100 : 10,
+  max: 10,
   message: { error: 'Too many login attempts. Try again in 15 minutes.' },
 });
 
@@ -61,6 +45,23 @@ if (process.env.NODE_ENV !== 'test') {
   app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 }
 
+// ── Auto Database Schema Initialization ───────────────────────
+async function initializeDatabaseSchema() {
+  try {
+    const schemaPath = path.join(__dirname, 'src', 'schema.sql');
+    if (fs.existsSync(schemaPath)) {
+      const sql = fs.readFileSync(schemaPath, 'utf8');
+      console.log('🔄 Verifying and executing database schema...');
+      await db.query(sql);
+      console.log('✅ Database tables and seed data are ready!');
+    } else {
+      console.warn('⚠️ schema.sql file not found at src/schema.sql');
+    }
+  } catch (err) {
+    console.error('ℹ️ Database initialization note:', err.message);
+  }
+}
+
 // ── Routes ────────────────────────────────────────────────────
 const authRoutes = require('./routes/auth');
 const productsRoutes = require('./routes/products');
@@ -68,16 +69,7 @@ const { galleryRouter } = require('./routes/gallery');
 const registrationsRoutes = require('./routes/registrations');
 const messagesRoutes = require('./routes/messages');
 const { directorRouter, testimonialsRouter, announcementsRouter } = require('./routes/content');
-const { usersRouter, dashboardRouter, permissionsRouter } = require('./routes/admin');
-const notificationsRoutes = require('./routes/notificationsRoutes');
-
-// Helper to prevent response caching on dynamic API data
-const setNoCache = (req, res, next) => {
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
-  next();
-};
+const { usersRouter, dashboardRouter } = require('./routes/admin');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productsRoutes);
@@ -88,25 +80,10 @@ app.use('/api/director', directorRouter);
 app.use('/api/testimonials', testimonialsRouter);
 app.use('/api/announcements', announcementsRouter);
 app.use('/api/admin/users', usersRouter);
-app.use('/api/admin/dashboard', setNoCache, dashboardRouter);
-app.use('/api/admin/permissions', permissionsRouter);
-// Route alias so requests to /api/admin/roles also hit permissionsRouter
-app.use('/api/admin/roles', permissionsRouter);
-app.use('/api/admin/notifications', setNoCache, notificationsRoutes);
+app.use('/api/admin/dashboard', dashboardRouter);
 
 // ── Health Check ──────────────────────────────────────────────
 app.get('/health', (req, res) => res.json({ status: 'OK', timestamp: new Date().toISOString() }));
-
-// ── Frontend Production Static Serving ────────────────────────
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
-
-// Catch-all route to support React Router client-side navigation
-app.get('*', (req, res, next) => {
-  if (req.originalUrl.startsWith('/api')) {
-    return next();
-  }
-  res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
-});
 
 // ── 404 Handler ───────────────────────────────────────────────
 app.use((req, res) => res.status(404).json({ error: 'Endpoint not found.' }));
@@ -130,10 +107,13 @@ app.use((err, req, res, next) => {
 
 // ── Start ─────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`\n🏦 Obotantim Cooperative API`);
-  console.log(`🚀 Server running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
-  console.log(`🔗 Health check: http://localhost:${PORT}/health\n`);
+
+initializeDatabaseSchema().then(() => {
+  app.listen(PORT, () => {
+    console.log(`\n🏦 Obotantim Cooperative API`);
+    console.log(`🚀 Server running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
+    console.log(`🔗 Health check: http://localhost:${PORT}/health\n`);
+  });
 });
 
 module.exports = app;
