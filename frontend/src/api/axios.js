@@ -1,7 +1,13 @@
 import axios from 'axios';
 
+// Dynamically use the production API URL when available, otherwise fall back to local proxy
+const rawBaseURL = import.meta.env.VITE_API_BASE_URL || '';
+const baseURL = rawBaseURL 
+  ? (rawBaseURL.endsWith('/api') ? rawBaseURL : `${rawBaseURL.replace(/\/+$/, '')}/api`)
+  : '/api';
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL,
   timeout: 30000,
   headers: { 'Content-Type': 'application/json' },
 });
@@ -9,7 +15,9 @@ const api = axios.create({
 // Attach JWT token to every request
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('obotantim_token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (token && token !== 'undefined') {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
   return config;
 });
 

@@ -2,12 +2,14 @@ const bcrypt = require('bcryptjs');
 const { body, validationResult } = require('express-validator');
 const pool = require('../config/database');
 const auditLog = require('../utils/auditLog');
+const speakeasy = require('speakeasy');
+const { decryptMfaSecret } = require('../utils/mfaSecrets');
 
 // GET /api/admin/users — super_admin only
 const getAll = async (req, res, next) => {
   try {
     const result = await pool.query(
-      'SELECT id, name, email, role, is_active, last_login, created_at FROM admin_users ORDER BY created_at DESC'
+      'SELECT id, name, email, role, is_active, mfa_enabled, last_login, created_at FROM admin_users ORDER BY created_at DESC'
     );
     res.json(result.rows);
   } catch (err) { next(err); }
@@ -28,14 +30,18 @@ const create = [
       const { name, email, password, role } = req.body;
       const hashed = await bcrypt.hash(password, 12);
 
-      const result = await pool.query(
-        'INSERT INTO admin_users (name, email, password, role) VALUES ($1,$2,$3,$4) RETURNING id, name, email, role, is_active, created_at',
+      const insert = await pool.query(
+        'INSERT INTO admin_users (name, email, password, role) VALUES (?,?,?,?)',
         [name, email, hashed, role]
+      );
+      const result = await pool.query(
+        'SELECT id, name, email, role, is_active, created_at FROM admin_users WHERE id = ?',
+        [insert.insertId]
       );
       await auditLog(req, 'CREATE_USER', 'admin_users', result.rows[0].id, { email, role });
       res.status(201).json(result.rows[0]);
     } catch (err) {
-      if (err.code === '23505') return res.status(409).json({ error: 'Email already in use.' });
+      if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Email already in use.' });
       next(err);
     }
   },
@@ -51,13 +57,16 @@ const update = async (req, res, next) => {
       return res.status(400).json({ error: 'You cannot deactivate your own account.' });
     }
 
-    const result = await pool.query(
+    await pool.query(
       `UPDATE admin_users SET
-        name=COALESCE($1,name), email=COALESCE($2,email),
-        role=COALESCE($3,role), is_active=COALESCE($4,is_active), updated_at=NOW()
-       WHERE id=$5 RETURNING id, name, email, role, is_active`,
+        name=COALESCE(?,name), email=COALESCE(?,email),
+        role=COALESCE(?,role), is_active=COALESCE(?,is_active),
+        token_version = token_version + 1,
+        updated_at=NOW()
+       WHERE id=?`,
       [name, email, role, is_active, req.params.id]
     );
+    const result = await pool.query('SELECT id, name, email, role, is_active FROM admin_users WHERE id = ?', [req.params.id]);
     if (!result.rows[0]) return res.status(404).json({ error: 'User not found.' });
     await auditLog(req, 'UPDATE_USER', 'admin_users', req.params.id, { role, is_active });
     res.json(result.rows[0]);
@@ -72,7 +81,7 @@ const resetPassword = async (req, res, next) => {
       return res.status(400).json({ error: 'Password must be at least 8 characters.' });
     }
     const hashed = await bcrypt.hash(newPassword, 12);
-    await pool.query('UPDATE admin_users SET password=$1, updated_at=NOW() WHERE id=$2', [hashed, req.params.id]);
+    await pool.query('UPDATE admin_users SET password=?, token_version=token_version+1, updated_at=NOW() WHERE id=?', [hashed, req.params.id]);
     await auditLog(req, 'RESET_USER_PASSWORD', 'admin_users', req.params.id);
     res.json({ message: 'Password reset successfully.' });
   } catch (err) { next(err); }
@@ -84,10 +93,47 @@ const remove = async (req, res, next) => {
     if (parseInt(req.params.id) === req.user.id) {
       return res.status(400).json({ error: 'You cannot delete your own account.' });
     }
-    await pool.query('DELETE FROM admin_users WHERE id=$1', [req.params.id]);
+    await pool.query('UPDATE admin_users SET is_active = FALSE, token_version = token_version + 1, updated_at = NOW() WHERE id=?', [req.params.id]);
     await auditLog(req, 'DELETE_USER', 'admin_users', req.params.id);
-    res.json({ message: 'User deleted.' });
+    res.json({ message: 'User deactivated and all active sessions revoked.' });
   } catch (err) { next(err); }
 };
 
-module.exports = { getAll, create, update, resetPassword, remove };
+const setMfa = async (req, res, next) => {
+  try {
+    const enabled = req.body?.enabled;
+    if (typeof enabled !== 'boolean') return res.status(400).json({ error: 'enabled must be a boolean.' });
+    const id = Number.parseInt(req.params.id, 10);
+    const target = await pool.query('SELECT id, mfa_enabled, mfa_secret FROM admin_users WHERE id = ?', [id]);
+    if (!target.rows[0]) return res.status(404).json({ error: 'User not found.' });
+    if (enabled) {
+      const code = String(req.body?.code || '').replace(/\s/g, '');
+      if (!target.rows[0].mfa_secret || !/^\d{6}$/.test(code)) {
+        return res.status(400).json({ error: 'The user must have an authenticator configured; provide its current 6-digit code to enable MFA.' });
+      }
+      const valid = speakeasy.totp.verify({
+        secret: decryptMfaSecret(target.rows[0].mfa_secret),
+        encoding: 'base32', token: code, window: 1,
+      });
+      if (!valid) return res.status(400).json({ error: 'The authenticator code is invalid.' });
+    }
+    await pool.query(
+      'UPDATE admin_users SET mfa_enabled = ?, token_version = token_version + 1, updated_at = NOW() WHERE id = ?',
+      [enabled, id]
+    );
+    await auditLog(req, enabled ? 'REQUIRE_MFA' : 'DISABLE_MFA', 'admin_users', id);
+    res.json({ message: enabled ? 'MFA is required for this user.' : 'MFA disabled and sessions revoked.' });
+  } catch (error) { next(error); }
+};
+
+const revokeSessions = async (req, res, next) => {
+  try {
+    const id = Number.parseInt(req.params.id, 10);
+    const result = await pool.query('UPDATE admin_users SET token_version = token_version + 1 WHERE id = ?', [id]);
+    if (!result.rowCount) return res.status(404).json({ error: 'User not found.' });
+    await auditLog(req, 'REVOKE_USER_SESSIONS', 'admin_users', id);
+    res.json({ message: 'All active sessions revoked.' });
+  } catch (error) { next(error); }
+};
+
+module.exports = { getAll, create, update, resetPassword, remove, setMfa, revokeSessions };

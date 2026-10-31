@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Search, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Search, ChevronRight, ChevronLeft, Download } from 'lucide-react';
 import api from '../../api/axios';
+import { downloadCsv } from '../../api/downloadCsv';
 
 const statusColors = {
   new: 'bg-blue-50 text-blue-600',
@@ -33,9 +34,14 @@ export default function AdminRegistrations() {
 
   return (
     <div>
-      <div className="mb-6">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
         <h1 className="font-sans font-bold text-2xl text-dark">Registrations</h1>
         <p className="text-gray-500 text-sm mt-1">Review and manage member applications.</p>
+        </div>
+        <button type="button" onClick={() => downloadCsv('/exports/registrations.csv', { status: status || undefined, service_type: serviceType || undefined })} className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-white">
+          <Download size={15} /> Export to CSV
+        </button>
       </div>
 
       {/* Filters */}

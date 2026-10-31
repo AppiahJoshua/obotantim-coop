@@ -3,8 +3,13 @@ import { useMutation } from '@tanstack/react-query';
 import { useInView } from 'react-intersection-observer';
 import { MapPin, Phone, Mail, Clock, Send, Loader2, CheckCircle2 } from 'lucide-react';
 import api from '../api/axios';
+import usePublicSettings from '../hooks/usePublicSettings';
 
 export default function Contact() {
+  const settings = usePublicSettings();
+  const primaryPhone = settings.primary_phone || '0241 303 318';
+  const secondaryPhone = settings.secondary_phone || '0243 141 539';
+  const contactEmail = settings.contact_email || 'obotanimcoop.1@gmail.com';
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 });
   const [form, setForm] = useState({ name: '', email: '', phone: '', subject: '', message: '' });
 
@@ -47,9 +52,9 @@ export default function Contact() {
               <div>
                 <h4 className="font-sans font-semibold text-dark mb-1">Call Us</h4>
                 <p className="text-sm text-gray-500">
-                  <a href="tel:0241303318" className="hover:text-primary">0241 303 318</a>
+                  <a href={`tel:${primaryPhone.replace(/[^+\d]/g, '')}`} className="hover:text-primary">{primaryPhone}</a>
                   {' / '}
-                  <a href="tel:0243141539" className="hover:text-primary">0243 141 539</a>
+                  <a href={`tel:${secondaryPhone.replace(/[^+\d]/g, '')}`} className="hover:text-primary">{secondaryPhone}</a>
                 </p>
               </div>
             </div>
@@ -60,8 +65,8 @@ export default function Contact() {
               </div>
               <div>
                 <h4 className="font-sans font-semibold text-dark mb-1">Email Us</h4>
-                <a href="mailto:obotanimcoop.1@gmail.com" className="text-sm text-gray-500 hover:text-primary">
-                  obotanimcoop.1@gmail.com
+                <a href={`mailto:${contactEmail}`} className="text-sm text-gray-500 hover:text-primary">
+                  {contactEmail}
                 </a>
               </div>
             </div>

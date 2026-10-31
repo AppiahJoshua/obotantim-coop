@@ -1,10 +1,18 @@
 const pool = require('../config/database');
 
+const normalizeIp = (ip) => {
+  if (typeof ip !== 'string' || !ip.trim()) return 'unknown';
+  const address = ip.split(',')[0].trim();
+  if (address === '::1') return '127.0.0.1';
+  if (address.toLowerCase().startsWith('::ffff:')) return address.slice(7);
+  return address;
+};
+
 const auditLog = async (req, action, resource = null, resourceId = null, details = null) => {
   try {
     await pool.query(
       `INSERT INTO audit_logs (user_id, user_email, user_role, action, resource, resource_id, details, ip_address)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         req.user?.id || null,
         req.user?.email || 'system',
@@ -13,7 +21,7 @@ const auditLog = async (req, action, resource = null, resourceId = null, details
         resource,
         resourceId,
         details ? JSON.stringify(details) : null,
-        req.ip || req.headers['x-forwarded-for'] || 'unknown',
+        normalizeIp(req.ip),
       ]
     );
   } catch (err) {

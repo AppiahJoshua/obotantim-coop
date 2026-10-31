@@ -24,10 +24,11 @@ const directorController = {
 
       if (!existing.rows[0]) {
         // Insert first record
-        const result = await pool.query(
-          'INSERT INTO director_message (director_name, title, message, photo_url, public_id) VALUES ($1,$2,$3,$4,$5) RETURNING *',
+        const insert = await pool.query(
+          'INSERT INTO director_message (director_name, title, message, photo_url, public_id) VALUES (?,?,?,?,?)',
           [director_name, title, message, photo_url, public_id]
         );
+        const result = await pool.query('SELECT * FROM director_message WHERE id = ?', [insert.insertId]);
         return res.json(result.rows[0]);
       }
 
@@ -36,17 +37,18 @@ const directorController = {
         await deleteFromCloudinary(existing.rows[0].public_id);
       }
 
-      const result = await pool.query(
+      await pool.query(
         `UPDATE director_message SET
-          director_name = COALESCE($1, director_name),
-          title = COALESCE($2, title),
-          message = COALESCE($3, message),
-          photo_url = COALESCE($4, photo_url),
-          public_id = COALESCE($5, public_id),
+          director_name = COALESCE(?, director_name),
+          title = COALESCE(?, title),
+          message = COALESCE(?, message),
+          photo_url = COALESCE(?, photo_url),
+          public_id = COALESCE(?, public_id),
           updated_at = NOW()
-         WHERE id = $6 RETURNING *`,
+         WHERE id = ?`,
         [director_name, title, message, photo_url, public_id, existing.rows[0].id]
       );
+      const result = await pool.query('SELECT * FROM director_message WHERE id = ?', [existing.rows[0].id]);
       await auditLog(req, 'UPDATE_DIRECTOR_MESSAGE', 'director_message', existing.rows[0].id);
       res.json(result.rows[0]);
     } catch (err) { next(err); }
@@ -72,10 +74,11 @@ const testimonialsController = {
       if (!name || !message) return res.status(400).json({ error: 'Name and message required.' });
       const photo_url = req.file ? req.file.path : null;
       const public_id = req.file ? req.file.filename : null;
-      const result = await pool.query(
-        'INSERT INTO testimonials (name, location, message, photo_url, public_id, sort_order) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *',
+      const insert = await pool.query(
+        'INSERT INTO testimonials (name, location, message, photo_url, public_id, sort_order) VALUES (?,?,?,?,?,?)',
         [name, location, message, photo_url, public_id, sort_order || 0]
       );
+      const result = await pool.query('SELECT * FROM testimonials WHERE id = ?', [insert.insertId]);
       res.status(201).json(result.rows[0]);
     } catch (err) { next(err); }
   },
@@ -83,13 +86,14 @@ const testimonialsController = {
   update: async (req, res, next) => {
     try {
       const { name, location, message, is_active, sort_order } = req.body;
-      const result = await pool.query(
+      await pool.query(
         `UPDATE testimonials SET
-          name=COALESCE($1,name), location=COALESCE($2,location), message=COALESCE($3,message),
-          is_active=COALESCE($4,is_active), sort_order=COALESCE($5,sort_order)
-         WHERE id=$6 RETURNING *`,
+          name=COALESCE(?,name), location=COALESCE(?,location), message=COALESCE(?,message),
+          is_active=COALESCE(?,is_active), sort_order=COALESCE(?,sort_order)
+         WHERE id=?`,
         [name, location, message, is_active, sort_order, req.params.id]
       );
+      const result = await pool.query('SELECT * FROM testimonials WHERE id = ?', [req.params.id]);
       if (!result.rows[0]) return res.status(404).json({ error: 'Testimonial not found.' });
       res.json(result.rows[0]);
     } catch (err) { next(err); }
@@ -97,10 +101,10 @@ const testimonialsController = {
 
   remove: async (req, res, next) => {
     try {
-      const row = await pool.query('SELECT public_id FROM testimonials WHERE id=$1', [req.params.id]);
+      const row = await pool.query('SELECT public_id FROM testimonials WHERE id=?', [req.params.id]);
       if (!row.rows[0]) return res.status(404).json({ error: 'Testimonial not found.' });
       if (row.rows[0].public_id) await deleteFromCloudinary(row.rows[0].public_id);
-      await pool.query('DELETE FROM testimonials WHERE id=$1', [req.params.id]);
+      await pool.query('DELETE FROM testimonials WHERE id=?', [req.params.id]);
       res.json({ message: 'Testimonial deleted.' });
     } catch (err) { next(err); }
   },
@@ -124,10 +128,11 @@ const announcementsController = {
       const { title, content, is_published } = req.body;
       if (!title || !content) return res.status(400).json({ error: 'Title and content required.' });
       const published_at = is_published ? new Date() : null;
-      const result = await pool.query(
-        'INSERT INTO announcements (title, content, is_published, published_at, created_by) VALUES ($1,$2,$3,$4,$5) RETURNING *',
+      const insert = await pool.query(
+        'INSERT INTO announcements (title, content, is_published, published_at, created_by) VALUES (?,?,?,?,?)',
         [title, content, !!is_published, published_at, req.user.id]
       );
+      const result = await pool.query('SELECT * FROM announcements WHERE id = ?', [insert.insertId]);
       await auditLog(req, 'CREATE_ANNOUNCEMENT', 'announcements', result.rows[0].id);
       res.status(201).json(result.rows[0]);
     } catch (err) { next(err); }
@@ -136,17 +141,18 @@ const announcementsController = {
   update: async (req, res, next) => {
     try {
       const { title, content, is_published } = req.body;
-      const existing = await pool.query('SELECT * FROM announcements WHERE id=$1', [req.params.id]);
+      const existing = await pool.query('SELECT * FROM announcements WHERE id=?', [req.params.id]);
       if (!existing.rows[0]) return res.status(404).json({ error: 'Announcement not found.' });
 
       const published_at = is_published && !existing.rows[0].is_published ? new Date() : existing.rows[0].published_at;
-      const result = await pool.query(
+      await pool.query(
         `UPDATE announcements SET
-          title=COALESCE($1,title), content=COALESCE($2,content),
-          is_published=COALESCE($3,is_published), published_at=$4, updated_at=NOW()
-         WHERE id=$5 RETURNING *`,
+          title=COALESCE(?,title), content=COALESCE(?,content),
+          is_published=COALESCE(?,is_published), published_at=?, updated_at=NOW()
+         WHERE id=?`,
         [title, content, is_published, published_at, req.params.id]
       );
+      const result = await pool.query('SELECT * FROM announcements WHERE id = ?', [req.params.id]);
       await auditLog(req, 'UPDATE_ANNOUNCEMENT', 'announcements', req.params.id);
       res.json(result.rows[0]);
     } catch (err) { next(err); }
@@ -154,8 +160,9 @@ const announcementsController = {
 
   remove: async (req, res, next) => {
     try {
-      const result = await pool.query('DELETE FROM announcements WHERE id=$1 RETURNING id', [req.params.id]);
+      const result = await pool.query('SELECT id FROM announcements WHERE id=?', [req.params.id]);
       if (!result.rows[0]) return res.status(404).json({ error: 'Announcement not found.' });
+      await pool.query('DELETE FROM announcements WHERE id=?', [req.params.id]);
       await auditLog(req, 'DELETE_ANNOUNCEMENT', 'announcements', req.params.id);
       res.json({ message: 'Announcement deleted.' });
     } catch (err) { next(err); }

@@ -27,6 +27,15 @@ export const AuthProvider = ({ children }) => {
 
   const login = useCallback(async (email, password) => {
     const { data } = await api.post('/auth/login', { email, password });
+    if (data.mfaRequired) return data;
+    localStorage.setItem('obotantim_token', data.token);
+    localStorage.setItem('obotantim_user', JSON.stringify(data.user));
+    setUser(data.user);
+    return data.user;
+  }, []);
+
+  const verifyMfaLogin = useCallback(async (mfaToken, code) => {
+    const { data } = await api.post('/auth/mfa/verify-login', { mfaToken, code });
     localStorage.setItem('obotantim_token', data.token);
     localStorage.setItem('obotantim_user', JSON.stringify(data.user));
     setUser(data.user);
@@ -39,6 +48,11 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   }, []);
 
+  const updateUser = useCallback((updatedUser) => {
+    localStorage.setItem('obotantim_user', JSON.stringify(updatedUser));
+    setUser(updatedUser);
+  }, []);
+
   const hasRole = useCallback((...roles) => {
     return user ? roles.includes(user.role) : false;
   }, [user]);
@@ -49,7 +63,7 @@ export const AuthProvider = ({ children }) => {
   }, [user]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, hasRole, hasMinRole }}>
+    <AuthContext.Provider value={{ user, loading, login, verifyMfaLogin, logout, updateUser, hasRole, hasMinRole }}>
       {children}
     </AuthContext.Provider>
   );

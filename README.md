@@ -4,7 +4,7 @@ A production-ready website and secure admin dashboard for **Obotantim Cooperativ
 
 ```
 obotantim-coop/
-├── backend/      Node.js + Express + PostgreSQL API
+├── backend/      Node.js + Express + MySQL API
 └── frontend/     React + Vite + Tailwind CSS
 ```
 
@@ -16,7 +16,7 @@ obotantim-coop/
 |--------------|------------------------------------------------|
 | Frontend     | React 18, Vite, Tailwind CSS, React Query, React Router |
 | Backend      | Node.js, Express                              |
-| Database     | PostgreSQL                                    |
+| Database     | MySQL 8+                                      |
 | Auth         | JWT (JSON Web Tokens) + bcrypt password hashing |
 | File Storage | Cloudinary                                    |
 | Icons        | lucide-react                                  |
@@ -44,7 +44,7 @@ Password: Admin@2026!
 
 ### Prerequisites
 - Node.js 18+
-- A PostgreSQL database (local or hosted — e.g. Render, Supabase, Neon)
+- A MySQL 8+ database (local or hosted)
 - A free [Cloudinary](https://cloudinary.com) account (for image uploads)
 
 ### Backend
@@ -52,15 +52,63 @@ Password: Admin@2026!
 ```bash
 cd backend
 cp .env.example .env
-# Fill in DATABASE_URL, JWT_SECRET, CLOUDINARY_* in .env
+# Fill in MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DATABASE,
+# JWT_SECRET, and CLOUDINARY_* in .env
 
 npm install
 
 # Create tables + seed default admin, products, testimonials
-psql "$DATABASE_URL" -f src/schema.sql
+npm run seed
 
 npm run dev          # starts on http://localhost:5000
 ```
+
+For an existing database, apply the notification preferences, email outbox metadata, and settings changes without rerunning seed data:
+
+```bash
+npm run migrate:notifications
+npm run migrate:password-reset
+npm run migrate:security
+```
+
+The password reset and security migrations add reset-token, MFA, token-version, application tracking-code, and SMS outbox schema. Keep `MFA_ENCRYPTION_KEY` and `BACKUP_ENCRYPTION_KEY` secret and back them up securely; losing them makes stored MFA secrets or encrypted backups unrecoverable.
+
+Configure the `SMTP_*` values in `backend/.env`, then run the email worker in a separate terminal to deliver queued receipts and staff alerts:
+
+```bash
+cd backend
+npm run worker:email
+```
+
+The API persists notification/outbox jobs during form submission; SMTP delivery runs in the worker and retries transient failures.
+
+Run the SMS worker with configured Arkesel credentials:
+
+```bash
+npm run worker:sms
+```
+
+### Backups and Recovery
+
+Install the MySQL client tools (`mysqldump` and `mysql`) and set `BACKUP_ENCRYPTION_KEY` to a generated 32-byte key encoded as 64 hex characters. Test a manual encrypted backup first:
+
+```bash
+npm run backup:now
+```
+
+To run daily backups in the API process, set `BACKUP_SCHEDULER_ENABLED=true` and optionally `BACKUP_CRON` (default 2:00 AM). Backups are compressed, AES-256-GCM encrypted, stored in `backend/backups/`, and files older than 30 days are removed.
+
+To restore, stop the API/workers, set `RESTORE_CONFIRM=YES` in the environment, and run:
+
+```bash
+npm run restore:backup -- "backups/obotantim_coop-YYYY-MM-DDT....sql.gz.enc"
+```
+
+The restore overwrites data in the configured `MYSQL_DATABASE`. Verify the target and retain a separate pre-restore backup before proceeding.
+
+### Verification
+
+Run the mocked-MySQL HTTP integration tests with `npm test`. They cover login, role enforcement, reset-token single use, notification preferences, and settings authorization.
 
 ### Frontend
 
@@ -80,20 +128,17 @@ Visit:
 
 ## 4. Deploying to Render.com
 
-### Step 1 — PostgreSQL Database
-1. Render Dashboard → **New → PostgreSQL**
-2. Copy the **Internal Database URL** once created.
-3. Run the schema against it once (from your machine, using the **External** URL):
-   ```bash
-   psql "EXTERNAL_DATABASE_URL" -f backend/src/schema.sql
-   ```
+### Step 1 — MySQL Database
+1. Provision a MySQL 8+ database with your chosen hosting provider.
+2. Set `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD`, and `MYSQL_DATABASE` in the backend environment.
+3. Run `npm run seed` from `backend` to create the tables and seed initial content.
 
 ### Step 2 — Backend (Web Service)
 1. Render Dashboard → **New → Web Service** → connect this repo, root directory `backend`.
 2. Build command: `npm install`
 3. Start command: `npm start`
 4. Environment variables (Render → Environment):
-   - `DATABASE_URL` → the **Internal** Postgres URL from Step 1
+   - `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DATABASE` → connection details from Step 1
    - `JWT_SECRET` → generate a long random string
    - `JWT_EXPIRES_IN` → `7d`
    - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
@@ -119,7 +164,7 @@ Visit:
 
 ```
 backend/src/
-├── config/database.js        PostgreSQL pool
+├── config/database.js        MySQL connection pool
 ├── controllers/               Route handlers (one per resource)
 ├── middleware/
 │   ├── auth.js                JWT verification (+ optional-auth variant)

@@ -7,11 +7,11 @@ const getOverview = async (req, res, next) => {
       users, registrations, messages, products, gallery,
       registrationsByStatus, registrationsByService, recentRegistrations, recentMessages, auditLogs
     ] = await Promise.all([
-      pool.query('SELECT COUNT(*) FROM admin_users WHERE is_active = true'),
-      pool.query('SELECT COUNT(*) FROM registrations'),
-      pool.query('SELECT COUNT(*) FROM contact_messages'),
-      pool.query('SELECT COUNT(*) FROM products WHERE is_active = true'),
-      pool.query('SELECT COUNT(*) FROM gallery WHERE is_active = true'),
+      pool.query('SELECT COUNT(*) AS count FROM admin_users WHERE is_active = true'),
+      pool.query('SELECT COUNT(*) AS count FROM registrations'),
+      pool.query('SELECT COUNT(*) AS count FROM contact_messages'),
+      pool.query('SELECT COUNT(*) AS count FROM products WHERE is_active = true'),
+      pool.query('SELECT COUNT(*) AS count FROM gallery WHERE is_active = true'),
       pool.query(`SELECT status, COUNT(*) as count FROM registrations GROUP BY status ORDER BY count DESC`),
       pool.query(`SELECT service_type, COUNT(*) as count FROM registrations GROUP BY service_type`),
       pool.query(`SELECT id, full_name, phone, service_type, status, created_at

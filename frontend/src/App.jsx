@@ -2,8 +2,11 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 // Public
-import Home from './pages/Home';
+import PublicSite from './components/PublicSite';
+import TrackApplication from './pages/TrackApplication';
 import AdminLogin from './pages/admin/AdminLogin';
+import ForgotPassword from './pages/admin/ForgotPassword';
+import ResetPassword from './pages/admin/ResetPassword';
 
 // Admin
 import AdminLayout from './pages/admin/AdminLayout';
@@ -17,6 +20,8 @@ import AdminDirector from './pages/admin/AdminDirector';
 import AdminAnnouncements from './pages/admin/AdminAnnouncements';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminAuditLogs from './pages/admin/AdminAuditLogs';
+import AdminProfile from './pages/admin/AdminProfile';
+import AdminSettings from './pages/admin/AdminSettings';
 
 const ProtectedRoute = ({ children, minRole }) => {
   const { user, loading, hasMinRole } = useAuth();
@@ -39,10 +44,13 @@ export default function App() {
       <AuthProvider>
         <Routes>
           {/* ── Public ── */}
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<PublicSite />} />
+          <Route path="/track-application" element={<TrackApplication />} />
 
           {/* ── Admin Auth ── */}
           <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin/forgot-password" element={<ForgotPassword />} />
+          <Route path="/admin/reset-password" element={<ResetPassword />} />
 
           {/* ── Admin Dashboard ── */}
           <Route path="/admin" element={
@@ -77,6 +85,10 @@ export default function App() {
             } />
             <Route path="audit-logs" element={
               <ProtectedRoute minRole="super_admin"><AdminAuditLogs /></ProtectedRoute>
+            } />
+            <Route path="profile" element={<ProtectedRoute><AdminProfile /></ProtectedRoute>} />
+            <Route path="settings" element={
+              <ProtectedRoute minRole="super_admin"><AdminSettings /></ProtectedRoute>
             } />
           </Route>
 

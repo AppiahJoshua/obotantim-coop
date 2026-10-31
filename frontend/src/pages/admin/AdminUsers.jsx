@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, X, Loader2, Key, Power, Shield } from 'lucide-react';
+import { Plus, X, Loader2, Key, Power, Shield, ShieldCheck, RotateCcw } from 'lucide-react';
 import api from '../../api/axios';
 import { useAuth } from '../../context/AuthContext';
 
@@ -19,6 +19,8 @@ export default function AdminUsers() {
   const [modalOpen, setModalOpen] = useState(false);
   const [resetModal, setResetModal] = useState(null);
   const [newPassword, setNewPassword] = useState('');
+  const [mfaUser, setMfaUser] = useState(null);
+  const [mfaCode, setMfaCode] = useState('');
   const [form, setForm] = useState(emptyForm);
 
   const { data: users, isLoading } = useQuery({
@@ -43,6 +45,15 @@ export default function AdminUsers() {
   const resetMutation = useMutation({
     mutationFn: ({ id, newPassword }) => api.put(`/admin/users/${id}/reset-password`, { newPassword }),
     onSuccess: () => { setResetModal(null); setNewPassword(''); },
+  });
+
+  const mfaMutation = useMutation({
+    mutationFn: ({ id, enabled, code }) => api.put(`/admin/users/${id}/mfa`, { enabled, code }),
+    onSuccess: () => { setMfaUser(null); setMfaCode(''); qc.invalidateQueries({ queryKey: ['admin-users-list'] }); },
+  });
+  const revokeMutation = useMutation({
+    mutationFn: (id) => api.post(`/admin/users/${id}/revoke-sessions`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-users-list'] }),
   });
 
   return (
@@ -70,6 +81,7 @@ export default function AdminUsers() {
                 <th className="text-left px-5 py-3 font-medium">Email</th>
                 <th className="text-left px-5 py-3 font-medium">Role</th>
                 <th className="text-left px-5 py-3 font-medium">Status</th>
+                <th className="text-left px-5 py-3 font-medium">MFA</th>
                 <th className="text-left px-5 py-3 font-medium">Last Login</th>
                 <th className="px-5 py-3"></th>
               </tr>
@@ -85,11 +97,21 @@ export default function AdminUsers() {
                       {u.is_active ? 'Active' : 'Inactive'}
                     </span>
                   </td>
+                  <td className="px-5 py-3.5"><span className={`status-badge ${u.mfa_enabled ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>{u.mfa_enabled ? 'Enabled' : 'Off'}</span></td>
                   <td className="px-5 py-3.5 text-gray-400">{u.last_login ? new Date(u.last_login).toLocaleDateString() : 'Never'}</td>
                   <td className="px-5 py-3.5">
                     <div className="flex gap-1 justify-end">
                       <button onClick={() => setResetModal(u)} className="p-1.5 text-gray-400 hover:text-primary rounded-lg hover:bg-gray-100" title="Reset password">
                         <Key size={14} />
+                      </button>
+                      <button onClick={() => u.mfa_enabled
+                        ? mfaMutation.mutate({ id: u.id, enabled: false })
+                        : (setMfaUser(u), setMfaCode(''))}
+                        className="p-1.5 text-gray-400 hover:text-primary rounded-lg hover:bg-gray-100" title={u.mfa_enabled ? 'Disable MFA' : 'Enable MFA'}>
+                        <ShieldCheck size={14} />
+                      </button>
+                      <button onClick={() => revokeMutation.mutate(u.id)} className="p-1.5 text-gray-400 hover:text-amber-600 rounded-lg hover:bg-gray-100" title="Revoke all sessions">
+                        <RotateCcw size={14} />
                       </button>
                       {u.id !== currentUser.id && (
                         <button onClick={() => toggleMutation.mutate({ id: u.id, is_active: !u.is_active })}
@@ -169,6 +191,21 @@ export default function AdminUsers() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {mfaUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <section className="w-full max-w-sm rounded-xl bg-white p-5 shadow-xl">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-dark">Enable MFA for {mfaUser.name}</h3>
+              <button type="button" aria-label="Close" onClick={() => setMfaUser(null)} className="text-gray-400"><X size={18} /></button>
+            </div>
+            <p className="mt-2 text-sm text-gray-500">The staff member must first enroll an authenticator. Enter their current 6-digit code to enable MFA.</p>
+            <input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={mfaCode} onChange={(event) => setMfaCode(event.target.value.replace(/\D/g, ''))} className="form-input mt-4" placeholder="6-digit code" />
+            {mfaMutation.isError && <p className="mt-2 text-sm text-red-600">{mfaMutation.error?.response?.data?.error || 'Could not update MFA.'}</p>}
+            <button type="button" disabled={mfaCode.length !== 6 || mfaMutation.isPending} onClick={() => mfaMutation.mutate({ id: mfaUser.id, enabled: true, code: mfaCode })} className="btn-primary mt-4 w-full justify-center text-sm disabled:opacity-50">Enable MFA</button>
+          </section>
         </div>
       )}
     </div>

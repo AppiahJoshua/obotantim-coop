@@ -77,10 +77,15 @@ export default function RegisterForm() {
               <CheckCircle2 size={40} className="text-primary" />
             </div>
             <h3 className="font-sans font-bold text-2xl text-dark mb-3">Registration Received!</h3>
-            <p className="text-gray-500 mb-8">
+            <p className="text-gray-500 mb-4">
               Thank you for reaching out to Obotantim Cooperative. Our team will review your
               submission and contact you within 1–2 business days.
             </p>
+            {mutation.data?.registration?.tracking_code && <div className="mb-7 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-left">
+              <p className="text-sm font-semibold text-emerald-900">Save your application reference</p>
+              <p className="mt-1 break-all font-mono text-sm text-emerald-800">{mutation.data.registration.tracking_code}</p>
+              <a href="/track-application" className="mt-2 inline-block text-sm font-medium text-primary underline">Track application status</a>
+            </div>}
             <button onClick={() => mutation.reset()} className="btn-primary">
               Submit Another Application
             </button>

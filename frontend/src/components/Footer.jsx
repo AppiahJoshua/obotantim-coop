@@ -1,4 +1,5 @@
 import { Facebook, Twitter, Instagram, Linkedin, MapPin, Phone, Mail } from 'lucide-react';
+import usePublicSettings from '../hooks/usePublicSettings';
 
 const quickLinks = [
   { label: 'About Us', href: '#about' },
@@ -16,6 +17,10 @@ const socials = [
 ];
 
 export default function Footer() {
+  const settings = usePublicSettings();
+  const primaryPhone = settings.primary_phone || '0241 303 318';
+  const secondaryPhone = settings.secondary_phone || '0243 141 539';
+  const contactEmail = settings.contact_email || 'obotanimcoop.1@gmail.com';
   const handleNav = (e, href) => {
     e.preventDefault();
     document.querySelector(href)?.scrollIntoView({ behavior: 'smooth' });
@@ -74,11 +79,11 @@ export default function Footer() {
               </li>
               <li className="flex gap-3">
                 <Phone size={16} className="flex-shrink-0 mt-0.5 text-gold" />
-                <span>0241 303 318 / 0243 141 539</span>
+                <span>{primaryPhone} / {secondaryPhone}</span>
               </li>
               <li className="flex gap-3">
                 <Mail size={16} className="flex-shrink-0 mt-0.5 text-gold" />
-                <span>obotanimcoop.1@gmail.com</span>
+                <span>{contactEmail}</span>
               </li>
             </ul>
           </div>
@@ -92,7 +97,7 @@ export default function Footer() {
           <p className="text-white/40 text-xs text-center sm:text-right">
             Designed by{' '}
             <span className="text-gold font-medium">Joslynch Digital</span>
-            {' '}· 0593 328 077 · joeappalu@gmail.com
+            {' '}· 0593328077 · joeappalu@gmail.com
           </p>
         </div>
       </div>

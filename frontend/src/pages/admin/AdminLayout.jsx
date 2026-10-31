@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Package, Image, ClipboardList, MessageSquare,
-  UserSquare2, Megaphone, Users, ScrollText, LogOut, Menu, X, ChevronDown
+  UserSquare2, Megaphone, Users, ScrollText, LogOut, Menu, X, ChevronDown, Settings2
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import NotificationBell from '../../components/admin/NotificationBell';
+import CommandSearch from '../../components/admin/CommandSearch';
 
 const menuItems = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true, minRole: null },
@@ -16,6 +18,7 @@ const menuItems = [
   { to: '/admin/announcements', label: 'Announcements', icon: Megaphone, minRole: 'content_editor' },
   { to: '/admin/users', label: 'User Management', icon: Users, minRole: 'super_admin' },
   { to: '/admin/audit-logs', label: 'Audit Logs', icon: ScrollText, minRole: 'super_admin' },
+  { to: '/admin/settings', label: 'Admin Settings', icon: Settings2, minRole: 'super_admin' },
 ];
 
 const roleLabels = {
@@ -85,6 +88,9 @@ export default function AdminLayout() {
         </nav>
 
         <div className="p-3 border-t border-white/10">
+          <NavLink to="/admin/profile" onClick={() => setSidebarOpen(false)} className="mb-1 flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium text-white/70 hover:bg-white/10 hover:text-white">
+            <UserSquare2 size={18} /> Profile & Settings
+          </NavLink>
           <button onClick={handleLogout}
                   className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-white/70 hover:bg-white/10 hover:text-white transition-colors">
             <LogOut size={18} />
@@ -102,10 +108,13 @@ export default function AdminLayout() {
             <Menu size={22} />
           </button>
 
-          <div className="hidden lg:block" />
+          <div className="hidden lg:block"><CommandSearch /></div>
 
-          <div className="relative">
-            <button onClick={() => setProfileOpen(!profileOpen)}
+          <div className="flex items-center gap-2">
+            <div className="sm:hidden"><CommandSearch /></div>
+            <NotificationBell />
+            <div className="relative">
+              <button onClick={() => setProfileOpen(!profileOpen)}
                     className="flex items-center gap-3 px-3 py-1.5 rounded-xl hover:bg-gray-50 transition-colors">
               <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-sans font-semibold text-sm">
                 {user?.name?.[0]?.toUpperCase() || 'A'}
@@ -119,7 +128,7 @@ export default function AdminLayout() {
               <ChevronDown size={14} className="text-gray-400" />
             </button>
 
-            {profileOpen && (
+              {profileOpen && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setProfileOpen(false)} />
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-20">
@@ -132,7 +141,8 @@ export default function AdminLayout() {
                   </button>
                 </div>
               </>
-            )}
+              )}
+            </div>
           </div>
         </header>
 

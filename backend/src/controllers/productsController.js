@@ -18,7 +18,7 @@ const getAll = async (req, res, next) => {
 // GET /api/products/:id
 const getById = async (req, res, next) => {
   try {
-    const result = await pool.query('SELECT * FROM products WHERE id = $1', [req.params.id]);
+    const result = await pool.query('SELECT * FROM products WHERE id = ?', [req.params.id]);
     if (!result.rows[0]) return res.status(404).json({ error: 'Product not found.' });
     res.json(result.rows[0]);
   } catch (err) {
@@ -33,11 +33,12 @@ const create = async (req, res, next) => {
     if (!category || !title) {
       return res.status(400).json({ error: 'Category and title are required.' });
     }
-    const result = await pool.query(
+    const insert = await pool.query(
       `INSERT INTO products (category, title, description, icon, interest_rate, sort_order)
-       VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+       VALUES (?,?,?,?,?,?)`,
       [category, title, description, icon || 'coins', interest_rate, sort_order || 0]
     );
+    const result = await pool.query('SELECT * FROM products WHERE id = ?', [insert.insertId]);
     await auditLog(req, 'CREATE_PRODUCT', 'products', result.rows[0].id, { title });
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -49,19 +50,20 @@ const create = async (req, res, next) => {
 const update = async (req, res, next) => {
   try {
     const { category, title, description, icon, interest_rate, is_active, sort_order } = req.body;
-    const result = await pool.query(
+    await pool.query(
       `UPDATE products SET
-        category = COALESCE($1, category),
-        title = COALESCE($2, title),
-        description = COALESCE($3, description),
-        icon = COALESCE($4, icon),
-        interest_rate = COALESCE($5, interest_rate),
-        is_active = COALESCE($6, is_active),
-        sort_order = COALESCE($7, sort_order),
+        category = COALESCE(?, category),
+        title = COALESCE(?, title),
+        description = COALESCE(?, description),
+        icon = COALESCE(?, icon),
+        interest_rate = COALESCE(?, interest_rate),
+        is_active = COALESCE(?, is_active),
+        sort_order = COALESCE(?, sort_order),
         updated_at = NOW()
-       WHERE id = $8 RETURNING *`,
+       WHERE id = ?`,
       [category, title, description, icon, interest_rate, is_active, sort_order, req.params.id]
     );
+    const result = await pool.query('SELECT * FROM products WHERE id = ?', [req.params.id]);
     if (!result.rows[0]) return res.status(404).json({ error: 'Product not found.' });
     await auditLog(req, 'UPDATE_PRODUCT', 'products', result.rows[0].id);
     res.json(result.rows[0]);
@@ -73,9 +75,10 @@ const update = async (req, res, next) => {
 // DELETE /api/products/:id — admin
 const remove = async (req, res, next) => {
   try {
-    const result = await pool.query('DELETE FROM products WHERE id = $1 RETURNING id, title', [req.params.id]);
+    const result = await pool.query('SELECT id, title FROM products WHERE id = ?', [req.params.id]);
     if (!result.rows[0]) return res.status(404).json({ error: 'Product not found.' });
     await auditLog(req, 'DELETE_PRODUCT', 'products', req.params.id, { title: result.rows[0].title });
+    await pool.query('DELETE FROM products WHERE id = ?', [req.params.id]);
     res.json({ message: 'Product deleted.' });
   } catch (err) {
     next(err);

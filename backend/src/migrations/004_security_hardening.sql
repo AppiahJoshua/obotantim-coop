@@ -1,0 +1,20 @@
+ALTER TABLE admin_users
+  ADD COLUMN mfa_secret VARCHAR(255) NULL,
+  ADD COLUMN mfa_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+  ADD COLUMN token_version INT NOT NULL DEFAULT 0;
+
+ALTER TABLE registrations
+  ADD COLUMN tracking_code CHAR(32) NULL;
+
+CREATE TABLE IF NOT EXISTS sms_outbox (
+  id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  phone_number VARCHAR(25) NOT NULL,
+  message VARCHAR(1000) NOT NULL,
+  status ENUM('PENDING', 'PROCESSING', 'SENT', 'FAILED') NOT NULL DEFAULT 'PENDING',
+  attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  next_attempt_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  last_error TEXT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  processed_at DATETIME NULL,
+  KEY idx_sms_outbox_ready (status, next_attempt_at, id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

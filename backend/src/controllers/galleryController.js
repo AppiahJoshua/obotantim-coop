@@ -23,11 +23,12 @@ const upload = async (req, res, next) => {
       return res.status(400).json({ error: 'Image file is required.' });
     }
     const { caption, category, sort_order } = req.body;
-    const result = await pool.query(
+    const insert = await pool.query(
       `INSERT INTO gallery (caption, image_url, public_id, category, sort_order)
-       VALUES ($1,$2,$3,$4,$5) RETURNING *`,
+       VALUES (?,?,?,?,?)`,
       [caption, req.file.path, req.file.filename, category || 'general', sort_order || 0]
     );
+    const result = await pool.query('SELECT * FROM gallery WHERE id = ?', [insert.insertId]);
     await auditLog(req, 'UPLOAD_GALLERY', 'gallery', result.rows[0].id);
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -39,15 +40,16 @@ const upload = async (req, res, next) => {
 const update = async (req, res, next) => {
   try {
     const { caption, category, is_active, sort_order } = req.body;
-    const result = await pool.query(
+    await pool.query(
       `UPDATE gallery SET
-        caption = COALESCE($1, caption),
-        category = COALESCE($2, category),
-        is_active = COALESCE($3, is_active),
-        sort_order = COALESCE($4, sort_order)
-       WHERE id = $5 RETURNING *`,
+        caption = COALESCE(?, caption),
+        category = COALESCE(?, category),
+        is_active = COALESCE(?, is_active),
+        sort_order = COALESCE(?, sort_order)
+       WHERE id = ?`,
       [caption, category, is_active, sort_order, req.params.id]
     );
+    const result = await pool.query('SELECT * FROM gallery WHERE id = ?', [req.params.id]);
     if (!result.rows[0]) return res.status(404).json({ error: 'Gallery item not found.' });
     await auditLog(req, 'UPDATE_GALLERY', 'gallery', req.params.id);
     res.json(result.rows[0]);
@@ -59,7 +61,7 @@ const update = async (req, res, next) => {
 // DELETE /api/gallery/:id — admin
 const remove = async (req, res, next) => {
   try {
-    const existing = await pool.query('SELECT * FROM gallery WHERE id = $1', [req.params.id]);
+    const existing = await pool.query('SELECT * FROM gallery WHERE id = ?', [req.params.id]);
     if (!existing.rows[0]) return res.status(404).json({ error: 'Gallery item not found.' });
 
     // Delete from Cloudinary
@@ -67,7 +69,7 @@ const remove = async (req, res, next) => {
       await deleteFromCloudinary(existing.rows[0].public_id);
     }
 
-    await pool.query('DELETE FROM gallery WHERE id = $1', [req.params.id]);
+    await pool.query('DELETE FROM gallery WHERE id = ?', [req.params.id]);
     await auditLog(req, 'DELETE_GALLERY', 'gallery', req.params.id);
     res.json({ message: 'Gallery image deleted.' });
   } catch (err) {
