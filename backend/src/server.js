@@ -117,6 +117,26 @@ app.use('/api/announcements', announcementsRouter);
 app.use('/api/admin/users', usersRouter);
 app.use('/api/admin/dashboard', dashboardRouter);
 
+// ── Root Endpoint ─────────────────────────────────────────────
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    application: 'Obotantim Cooperative',
+    message: 'Obotantim Cooperative API is running.',
+    version: '1.0.0',
+    status: 'Operational',
+    documentation: {
+      health: '/health',
+      authentication: '/api/auth',
+      products: '/api/products',
+      gallery: '/api/gallery',
+      registrations: '/api/registrations',
+      announcements: '/api/announcements'
+    },
+    timestamp: new Date().toISOString()
+  });
+});
+
 // ── Health Check ──────────────────────────────────────────────
 app.get('/health', async (req, res) => {
   const checks = { database: 'ok', smtp: 'not_configured', emailOutbox: { pending: 0, failed: 0, stuck: 0, status: 'ok' } };
