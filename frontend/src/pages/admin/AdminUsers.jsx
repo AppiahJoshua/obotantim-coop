@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, X, Loader2, Key, Power, Shield, ShieldCheck, RotateCcw } from 'lucide-react';
+import { Plus, X, Loader2, Key, Power, Shield, ShieldCheck, RotateCcw, Pencil } from 'lucide-react';
 import api from '../../api/axios';
 import { useAuth } from '../../context/AuthContext';
 
@@ -17,6 +17,8 @@ export default function AdminUsers() {
   const { user: currentUser } = useAuth();
   const qc = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
+  const [editUser, setEditUser] = useState(null);
+  const [editEmail, setEditEmail] = useState('');
   const [resetModal, setResetModal] = useState(null);
   const [newPassword, setNewPassword] = useState('');
   const [mfaUser, setMfaUser] = useState(null);
@@ -40,6 +42,15 @@ export default function AdminUsers() {
   const toggleMutation = useMutation({
     mutationFn: ({ id, is_active }) => api.put(`/admin/users/${id}`, { is_active }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-users-list'] }),
+  });
+
+  const updateEmailMutation = useMutation({
+    mutationFn: ({ id, email }) => api.put(`/admin/users/${id}`, { email }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-users-list'] });
+      setEditUser(null);
+      setEditEmail('');
+    },
   });
 
   const resetMutation = useMutation({
@@ -101,6 +112,11 @@ export default function AdminUsers() {
                   <td className="px-5 py-3.5 text-gray-400">{u.last_login ? new Date(u.last_login).toLocaleDateString() : 'Never'}</td>
                   <td className="px-5 py-3.5">
                     <div className="flex gap-1 justify-end">
+                      {u.id !== currentUser.id && (
+                        <button onClick={() => { setEditUser(u); setEditEmail(u.email); }} className="p-1.5 text-gray-400 hover:text-primary rounded-lg hover:bg-gray-100" title="Change staff email" aria-label={`Change email for ${u.name}`}>
+                          <Pencil size={14} />
+                        </button>
+                      )}
                       <button onClick={() => setResetModal(u)} className="p-1.5 text-gray-400 hover:text-primary rounded-lg hover:bg-gray-100" title="Reset password">
                         <Key size={14} />
                       </button>
@@ -125,6 +141,26 @@ export default function AdminUsers() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {editUser && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <h3 className="font-sans font-semibold text-lg text-dark">Change staff email</h3>
+              <button onClick={() => { setEditUser(null); setEditEmail(''); }} className="text-gray-400 hover:text-gray-600" aria-label="Close"><X size={20} /></button>
+            </div>
+            <form onSubmit={(event) => { event.preventDefault(); updateEmailMutation.mutate({ id: editUser.id, email: editEmail }); }} className="p-5">
+              <p className="mb-4 text-sm text-gray-500">Update the sign-in and notification email for {editUser.name}.</p>
+              <label className="form-label" htmlFor="staff-email">Email address</label>
+              <input id="staff-email" type="email" required maxLength={254} autoComplete="email" value={editEmail} onChange={(event) => setEditEmail(event.target.value)} className="form-input mt-1" />
+              {updateEmailMutation.isError && <p role="alert" className="mt-3 text-sm text-red-600">{updateEmailMutation.error?.response?.data?.error || 'Could not update staff email.'}</p>}
+              <button type="submit" disabled={updateEmailMutation.isPending || !editEmail.trim()} className="btn-primary mt-5 w-full justify-center text-sm disabled:opacity-60">
+                {updateEmailMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : 'Save email'}
+              </button>
+            </form>
+          </div>
         </div>
       )}
 

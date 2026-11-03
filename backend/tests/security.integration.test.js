@@ -104,6 +104,32 @@ describe('security hardening HTTP integration', () => {
     expect(response.body.maintenance_mode).toBe(false);
   });
 
+  test('super admin can update a staff email', async () => {
+    let updatedEmail;
+    pool.query.mockImplementation(async (sql, params) => {
+      if (sql.includes('SELECT id, name, email, role, is_active, token_version')) {
+        return { rows: [{ id: 1, name: 'Admin', email: 'admin@example.com', role: 'super_admin', is_active: 1, token_version: 0 }] };
+      }
+      if (sql.startsWith('UPDATE admin_users SET')) {
+        updatedEmail = params[1];
+        return { rows: [], rowCount: 1 };
+      }
+      if (sql.includes('SELECT id, name, email, role, is_active FROM admin_users WHERE id = ?')) {
+        return { rows: [{ id: 2, name: 'Staff', email: updatedEmail, role: 'manager', is_active: 1 }] };
+      }
+      return { rows: [], rowCount: 1 };
+    });
+
+    const response = await request(app)
+      .put('/api/admin/users/2')
+      .set('Authorization', `Bearer ${issueToken({ id: 1, role: 'super_admin' })}`)
+      .send({ email: ' Staff.New@Example.com ' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.email).toBe('staff.new@example.com');
+    expect(updatedEmail).toBe('staff.new@example.com');
+  });
+
   test('super admin can update validated settings', async () => {
     const connection = {
       beginTransaction: jest.fn().mockResolvedValue(undefined),

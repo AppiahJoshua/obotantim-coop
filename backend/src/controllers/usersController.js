@@ -51,6 +51,14 @@ const create = [
 const update = async (req, res, next) => {
   try {
     const { name, email, role, is_active } = req.body;
+    let normalizedEmail = email;
+
+    if (email !== undefined) {
+      if (typeof email !== 'string' || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+        return res.status(400).json({ error: 'A valid email address is required.' });
+      }
+      normalizedEmail = email.trim().toLowerCase();
+    }
 
     // Prevent super_admin from deactivating themselves
     if (parseInt(req.params.id) === req.user.id && is_active === false) {
@@ -64,13 +72,16 @@ const update = async (req, res, next) => {
         token_version = token_version + 1,
         updated_at=NOW()
        WHERE id=?`,
-      [name, email, role, is_active, req.params.id]
+      [name, normalizedEmail, role, is_active, req.params.id]
     );
     const result = await pool.query('SELECT id, name, email, role, is_active FROM admin_users WHERE id = ?', [req.params.id]);
     if (!result.rows[0]) return res.status(404).json({ error: 'User not found.' });
-    await auditLog(req, 'UPDATE_USER', 'admin_users', req.params.id, { role, is_active });
+    await auditLog(req, 'UPDATE_USER', 'admin_users', req.params.id, { email: normalizedEmail, role, is_active });
     res.json(result.rows[0]);
-  } catch (err) { next(err); }
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Email already in use.' });
+    next(err);
+  }
 };
 
 // PUT /api/admin/users/:id/reset-password — super_admin only
