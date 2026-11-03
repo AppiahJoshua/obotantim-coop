@@ -21,12 +21,10 @@ export default function NotificationBell() {
   const { data: count = 0 } = useQuery({
     queryKey: ['notifications', 'unread-count'],
     queryFn: getUnreadNotificationCount,
-    refetchInterval: 30000,
   });
   const { data, isLoading } = useQuery({
     queryKey: ['notifications', 'recent'],
     queryFn: () => getNotifications({ limit: 10 }),
-    refetchInterval: 30000,
     enabled: open,
   });
 
