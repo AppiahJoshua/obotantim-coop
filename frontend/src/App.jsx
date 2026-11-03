@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import useModuleAccess from './hooks/useModuleAccess';
 
 // Public
 import PublicSite from './components/PublicSite';
@@ -23,8 +24,9 @@ import AdminAuditLogs from './pages/admin/AdminAuditLogs';
 import AdminProfile from './pages/admin/AdminProfile';
 import AdminSettings from './pages/admin/AdminSettings';
 
-const ProtectedRoute = ({ children, minRole }) => {
+const ProtectedRoute = ({ children, minRole, module }) => {
   const { user, loading, hasMinRole } = useAuth();
+  const { disabledModules, isLoading: accessLoading, isError: accessError } = useModuleAccess();
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-surface">
       <div className="flex flex-col items-center gap-3">
@@ -35,6 +37,11 @@ const ProtectedRoute = ({ children, minRole }) => {
   );
   if (!user) return <Navigate to="/admin/login" replace />;
   if (minRole && !hasMinRole(minRole)) return <Navigate to="/admin" replace />;
+  if (module && user.role !== 'super_admin') {
+    if (accessLoading) return <div className="min-h-screen bg-surface" />;
+    if (accessError) return <p role="alert" className="p-8 text-sm text-red-700">Could not verify dashboard access. Refresh and try again.</p>;
+    if (disabledModules.includes(module)) return <p role="status" className="p-8 text-sm text-gray-600">This dashboard section is unavailable for your account.</p>;
+  }
   return children;
 };
 
@@ -58,27 +65,27 @@ export default function App() {
               <AdminLayout />
             </ProtectedRoute>
           }>
-            <Route index element={<AdminDashboard />} />
+            <Route index element={<ProtectedRoute module="dashboard"><AdminDashboard /></ProtectedRoute>} />
             <Route path="products" element={
-              <ProtectedRoute minRole="content_editor"><AdminProducts /></ProtectedRoute>
+              <ProtectedRoute minRole="content_editor" module="products"><AdminProducts /></ProtectedRoute>
             } />
             <Route path="gallery" element={
-              <ProtectedRoute minRole="content_editor"><AdminGallery /></ProtectedRoute>
+              <ProtectedRoute minRole="content_editor" module="gallery"><AdminGallery /></ProtectedRoute>
             } />
             <Route path="registrations" element={
-              <ProtectedRoute minRole="manager"><AdminRegistrations /></ProtectedRoute>
+              <ProtectedRoute minRole="manager" module="registrations"><AdminRegistrations /></ProtectedRoute>
             } />
             <Route path="registrations/:id" element={
-              <ProtectedRoute minRole="manager"><AdminRegistrationDetail /></ProtectedRoute>
+              <ProtectedRoute minRole="manager" module="registrations"><AdminRegistrationDetail /></ProtectedRoute>
             } />
             <Route path="messages" element={
-              <ProtectedRoute minRole="manager"><AdminMessages /></ProtectedRoute>
+              <ProtectedRoute minRole="manager" module="messages"><AdminMessages /></ProtectedRoute>
             } />
             <Route path="director" element={
-              <ProtectedRoute minRole="content_editor"><AdminDirector /></ProtectedRoute>
+              <ProtectedRoute minRole="content_editor" module="director"><AdminDirector /></ProtectedRoute>
             } />
             <Route path="announcements" element={
-              <ProtectedRoute minRole="content_editor"><AdminAnnouncements /></ProtectedRoute>
+              <ProtectedRoute minRole="content_editor" module="announcements"><AdminAnnouncements /></ProtectedRoute>
             } />
             <Route path="users" element={
               <ProtectedRoute minRole="super_admin"><AdminUsers /></ProtectedRoute>

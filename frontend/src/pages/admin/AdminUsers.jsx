@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, X, Loader2, Key, Power, Shield, ShieldCheck, RotateCcw, Pencil } from 'lucide-react';
+import { Plus, X, Loader2, Key, Power, Shield, ShieldCheck, RotateCcw, Pencil, SlidersHorizontal } from 'lucide-react';
 import api from '../../api/axios';
 import { useAuth } from '../../context/AuthContext';
 
@@ -12,6 +12,17 @@ const roleColors = {
   manager: 'bg-blue-50 text-blue-600',
   content_editor: 'bg-gold/15 text-yellow-700',
 };
+const modulesByRole = {
+  content_editor: [
+    ['dashboard', 'Dashboard'], ['products', 'Products'], ['gallery', 'Gallery'],
+    ['director', "Director's Message"], ['announcements', 'Announcements'],
+  ],
+  manager: [
+    ['dashboard', 'Dashboard'], ['registrations', 'Registrations'], ['messages', 'Messages'],
+    ['products', 'Products'], ['gallery', 'Gallery'], ['director', "Director's Message"],
+    ['announcements', 'Announcements'],
+  ],
+};
 
 export default function AdminUsers() {
   const { user: currentUser } = useAuth();
@@ -19,6 +30,8 @@ export default function AdminUsers() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editUser, setEditUser] = useState(null);
   const [editEmail, setEditEmail] = useState('');
+  const [accessUser, setAccessUser] = useState(null);
+  const [disabledModules, setDisabledModules] = useState([]);
   const [resetModal, setResetModal] = useState(null);
   const [newPassword, setNewPassword] = useState('');
   const [mfaUser, setMfaUser] = useState(null);
@@ -50,6 +63,15 @@ export default function AdminUsers() {
       qc.invalidateQueries({ queryKey: ['admin-users-list'] });
       setEditUser(null);
       setEditEmail('');
+    },
+  });
+
+  const accessMutation = useMutation({
+    mutationFn: ({ id, disabledModules: modules }) => api.put(`/admin/users/${id}/modules`, { disabledModules: modules }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-users-list'] });
+      setAccessUser(null);
+      setDisabledModules([]);
     },
   });
 
@@ -117,6 +139,17 @@ export default function AdminUsers() {
                           <Pencil size={14} />
                         </button>
                       )}
+                      {u.id !== currentUser.id && u.role !== 'super_admin' && (
+                        <button onClick={() => {
+                          const roleModules = (modulesByRole[u.role] || []).map(([module]) => module);
+                          setAccessUser(u);
+                          setDisabledModules(Array.isArray(u.disabled_modules)
+                            ? u.disabled_modules.filter((module) => roleModules.includes(module))
+                            : []);
+                        }} className="p-1.5 text-gray-400 hover:text-primary rounded-lg hover:bg-gray-100" title="Manage dashboard access" aria-label={`Manage dashboard access for ${u.name}`}>
+                          <SlidersHorizontal size={14} />
+                        </button>
+                      )}
                       <button onClick={() => setResetModal(u)} className="p-1.5 text-gray-400 hover:text-primary rounded-lg hover:bg-gray-100" title="Reset password">
                         <Key size={14} />
                       </button>
@@ -161,6 +194,40 @@ export default function AdminUsers() {
               </button>
             </form>
           </div>
+        </div>
+      )}
+
+      {accessUser && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <section className="w-full max-w-md rounded-xl bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-gray-100 p-5">
+              <h3 className="font-sans text-lg font-semibold text-dark">Dashboard access</h3>
+              <button type="button" onClick={() => { setAccessUser(null); setDisabledModules([]); }} className="text-gray-400 hover:text-gray-600" aria-label="Close"><X size={20} /></button>
+            </div>
+            <form onSubmit={(event) => { event.preventDefault(); accessMutation.mutate({ id: accessUser.id, disabledModules }); }} className="p-5">
+              <p className="mb-4 text-sm text-gray-500">Choose which sections {accessUser.name} can use. Their role still sets the maximum access.</p>
+              <div className="divide-y divide-gray-100 rounded-lg border border-gray-200 px-3">
+                {(modulesByRole[accessUser.role] || []).map(([module, label]) => (
+                  <label key={module} className="flex items-center justify-between gap-4 py-3 text-sm text-dark">
+                    {label}
+                    <input
+                      type="checkbox"
+                      checked={!disabledModules.includes(module)}
+                      onChange={(event) => setDisabledModules((current) => event.target.checked
+                        ? current.filter((item) => item !== module)
+                        : [...current, module])}
+                      className="h-4 w-4 accent-emerald-700"
+                    />
+                  </label>
+                ))}
+              </div>
+              {accessMutation.isError && <p role="alert" className="mt-3 text-sm text-red-600">{accessMutation.error?.response?.data?.error || 'Could not update dashboard access.'}</p>}
+              <p className="mt-3 text-xs text-gray-500">The staff member will need to sign in again after these changes are saved.</p>
+              <button type="submit" disabled={accessMutation.isPending} className="btn-primary mt-5 w-full justify-center text-sm disabled:opacity-60">
+                {accessMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : 'Save access'}
+              </button>
+            </form>
+          </section>
         </div>
       )}
 

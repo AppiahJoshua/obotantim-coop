@@ -4,15 +4,56 @@ const pool = require('../config/database');
 const auditLog = require('../utils/auditLog');
 const speakeasy = require('speakeasy');
 const { decryptMfaSecret } = require('../utils/mfaSecrets');
+const { MODULES_BY_ROLE, parseDisabledModules } = require('../utils/moduleAccess');
 
 // GET /api/admin/users — super_admin only
 const getAll = async (req, res, next) => {
   try {
     const result = await pool.query(
-      'SELECT id, name, email, role, is_active, mfa_enabled, last_login, created_at FROM admin_users ORDER BY created_at DESC'
+      'SELECT id, name, email, role, is_active, mfa_enabled, disabled_modules, last_login, created_at FROM admin_users ORDER BY created_at DESC'
     );
-    res.json(result.rows);
+    res.json(result.rows.map((user) => ({
+      ...user,
+      disabled_modules: parseDisabledModules(user.disabled_modules),
+    })));
   } catch (err) { next(err); }
+};
+
+const getModuleAccess = (req, res) => {
+  res.json({ disabledModules: parseDisabledModules(req.user.disabled_modules) });
+};
+
+const updateModuleAccess = async (req, res, next) => {
+  try {
+    const userId = Number.parseInt(req.params.id, 10);
+    const disabledModules = req.body?.disabledModules;
+    if (!Number.isSafeInteger(userId) || userId < 1 || !Array.isArray(disabledModules)
+      || disabledModules.some((module) => typeof module !== 'string')) {
+      return res.status(400).json({ error: 'Provide a valid staff member and module list.' });
+    }
+
+    const targetResult = await pool.query('SELECT id, name, role FROM admin_users WHERE id = ?', [userId]);
+    const target = targetResult.rows[0];
+    if (!target) return res.status(404).json({ error: 'User not found.' });
+    if (target.role === 'super_admin') {
+      return res.status(400).json({ error: 'Super admins always retain full access.' });
+    }
+
+    const roleModules = MODULES_BY_ROLE[target.role] || [];
+    const uniqueModules = [...new Set(disabledModules)];
+    if (uniqueModules.some((module) => !roleModules.includes(module))) {
+      return res.status(400).json({ error: 'A disabled module is not available for this staff role.' });
+    }
+
+    await pool.query(
+      'UPDATE admin_users SET disabled_modules = ?, token_version = token_version + 1, updated_at = NOW() WHERE id = ?',
+      [JSON.stringify(uniqueModules), userId]
+    );
+    await auditLog(req, 'UPDATE_USER_MODULE_ACCESS', 'admin_users', userId, { disabledModules: uniqueModules });
+    res.json({ userId, disabledModules: uniqueModules });
+  } catch (error) {
+    next(error);
+  }
 };
 
 // POST /api/admin/users — super_admin only
@@ -147,4 +188,4 @@ const revokeSessions = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-module.exports = { getAll, create, update, resetPassword, remove, setMfa, revokeSessions };
+module.exports = { getAll, create, update, getModuleAccess, updateModuleAccess, resetPassword, remove, setMfa, revokeSessions };

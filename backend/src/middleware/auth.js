@@ -13,7 +13,7 @@ const authenticate = async (req, res, next) => {
 
     // Verify user still exists and is active
     const result = await pool.query(
-      'SELECT id, name, email, role, is_active, token_version FROM admin_users WHERE id = ?',
+      'SELECT id, name, email, role, is_active, token_version, disabled_modules FROM admin_users WHERE id = ?',
       [decoded.id]
     );
 
@@ -55,7 +55,7 @@ const optionalAuthenticate = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     const result = await pool.query(
-      'SELECT id, name, email, role, is_active, token_version FROM admin_users WHERE id = ?',
+      'SELECT id, name, email, role, is_active, token_version, disabled_modules FROM admin_users WHERE id = ?',
       [decoded.id]
     );
 

@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS admin_users (
   mfa_secret VARCHAR(255) NULL,
   mfa_enabled BOOLEAN NOT NULL DEFAULT FALSE,
   token_version INT NOT NULL DEFAULT 0,
+  disabled_modules JSON NULL,
   role VARCHAR(20) NOT NULL DEFAULT 'content_editor',
   is_active BOOLEAN DEFAULT TRUE,
   last_login DATETIME,

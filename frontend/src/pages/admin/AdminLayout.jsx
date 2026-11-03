@@ -7,15 +7,16 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import NotificationBell from '../../components/admin/NotificationBell';
 import CommandSearch from '../../components/admin/CommandSearch';
+import useModuleAccess from '../../hooks/useModuleAccess';
 
 const menuItems = [
-  { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true, minRole: null },
-  { to: '/admin/registrations', label: 'Registrations', icon: ClipboardList, minRole: 'manager' },
-  { to: '/admin/messages', label: 'Messages', icon: MessageSquare, minRole: 'manager' },
-  { to: '/admin/products', label: 'Products', icon: Package, minRole: 'content_editor' },
-  { to: '/admin/gallery', label: 'Gallery', icon: Image, minRole: 'content_editor' },
-  { to: '/admin/director', label: "Director's Message", icon: UserSquare2, minRole: 'content_editor' },
-  { to: '/admin/announcements', label: 'Announcements', icon: Megaphone, minRole: 'content_editor' },
+  { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true, minRole: null, module: 'dashboard' },
+  { to: '/admin/registrations', label: 'Registrations', icon: ClipboardList, minRole: 'manager', module: 'registrations' },
+  { to: '/admin/messages', label: 'Messages', icon: MessageSquare, minRole: 'manager', module: 'messages' },
+  { to: '/admin/products', label: 'Products', icon: Package, minRole: 'content_editor', module: 'products' },
+  { to: '/admin/gallery', label: 'Gallery', icon: Image, minRole: 'content_editor', module: 'gallery' },
+  { to: '/admin/director', label: "Director's Message", icon: UserSquare2, minRole: 'content_editor', module: 'director' },
+  { to: '/admin/announcements', label: 'Announcements', icon: Megaphone, minRole: 'content_editor', module: 'announcements' },
   { to: '/admin/users', label: 'User Management', icon: Users, minRole: 'super_admin' },
   { to: '/admin/audit-logs', label: 'Audit Logs', icon: ScrollText, minRole: 'super_admin' },
   { to: '/admin/settings', label: 'Admin Settings', icon: Settings2, minRole: 'super_admin' },
@@ -35,11 +36,15 @@ const roleColors = {
 
 export default function AdminLayout() {
   const { user, logout, hasMinRole } = useAuth();
+  const { disabledModules, isLoading: accessLoading, isError: accessError } = useModuleAccess();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
-  const visibleItems = menuItems.filter((item) => !item.minRole || hasMinRole(item.minRole));
+  const visibleItems = menuItems.filter((item) =>
+    (!item.minRole || hasMinRole(item.minRole))
+    && (!item.module || (!accessLoading && !accessError && !disabledModules.includes(item.module)))
+  );
 
   const handleLogout = () => {
     logout();

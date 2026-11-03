@@ -1,11 +1,12 @@
 const pool = require('../config/database');
 const { deleteFromCloudinary } = require('../middleware/upload');
 const auditLog = require('../utils/auditLog');
+const { hasModuleAccess } = require('../utils/moduleAccess');
 
 // GET /api/gallery — public
 const getAll = async (req, res, next) => {
   try {
-    const isAdmin = req.user !== undefined;
+    const isAdmin = hasModuleAccess(req.user, 'gallery');
     const query = isAdmin
       ? 'SELECT * FROM gallery ORDER BY sort_order ASC, created_at DESC'
       : 'SELECT * FROM gallery WHERE is_active = true ORDER BY sort_order ASC, created_at DESC';

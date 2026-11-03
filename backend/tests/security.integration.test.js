@@ -44,6 +44,21 @@ describe('security hardening HTTP integration', () => {
     expect(response.status).toBe(403);
   });
 
+  test('disabled dashboard modules are blocked by their API routes', async () => {
+    pool.query.mockResolvedValue({ rows: [{
+      id: 9, name: 'Manager', email: 'manager@example.com', role: 'manager',
+      is_active: 1, token_version: 0, disabled_modules: ['messages'],
+    }] });
+
+    const response = await request(app)
+      .get('/api/messages')
+      .set('Authorization', `Bearer ${issueToken({ id: 9, role: 'manager' })}`);
+
+    expect(response.status).toBe(403);
+    expect(response.body.error).toMatch(/disabled/i);
+    expect(pool.query).toHaveBeenCalledTimes(1);
+  });
+
   test('password reset is one-use and rejects a second use', async () => {
     let used = false;
     pool.query.mockImplementation(async (sql) => {
@@ -128,6 +143,33 @@ describe('security hardening HTTP integration', () => {
     expect(response.status).toBe(200);
     expect(response.body.email).toBe('staff.new@example.com');
     expect(updatedEmail).toBe('staff.new@example.com');
+  });
+
+  test('super admin can disable an available module for a staff account', async () => {
+    let updateValues;
+    pool.query.mockImplementation(async (sql, params) => {
+      if (sql.includes('SELECT id, name, email, role, is_active, token_version')) {
+        return { rows: [{ id: 1, name: 'Admin', email: 'admin@example.com', role: 'super_admin', is_active: 1, token_version: 0 }] };
+      }
+      if (sql.includes('SELECT id, name, role FROM admin_users')) {
+        return { rows: [{ id: 2, name: 'Manager', role: 'manager' }] };
+      }
+      if (sql.startsWith('UPDATE admin_users SET disabled_modules')) {
+        updateValues = params;
+        return { rows: [], rowCount: 1 };
+      }
+      return { rows: [], rowCount: 1 };
+    });
+
+    const response = await request(app)
+      .put('/api/admin/users/2/modules')
+      .set('Authorization', `Bearer ${issueToken({ id: 1, role: 'super_admin' })}`)
+      .send({ disabledModules: ['messages'] });
+
+    expect(response.status).toBe(200);
+    expect(response.body.disabledModules).toEqual(['messages']);
+    expect(JSON.parse(updateValues[0])).toEqual(['messages']);
+    expect(updateValues[1]).toBe(2);
   });
 
   test('super admin can update validated settings', async () => {

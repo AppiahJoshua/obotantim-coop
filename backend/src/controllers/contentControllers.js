@@ -2,6 +2,7 @@
 const pool = require('../config/database');
 const { deleteFromCloudinary } = require('../middleware/upload');
 const auditLog = require('../utils/auditLog');
+const { hasModuleAccess } = require('../utils/moduleAccess');
 
 const directorController = {
   // GET /api/director — public
@@ -59,7 +60,7 @@ const directorController = {
 const testimonialsController = {
   getAll: async (req, res, next) => {
     try {
-      const isAdmin = !!req.user;
+      const isAdmin = hasModuleAccess(req.user, 'director');
       const q = isAdmin
         ? 'SELECT * FROM testimonials ORDER BY sort_order ASC, created_at DESC'
         : 'SELECT * FROM testimonials WHERE is_active=true ORDER BY sort_order ASC';
@@ -114,7 +115,7 @@ const testimonialsController = {
 const announcementsController = {
   getAll: async (req, res, next) => {
     try {
-      const isAdmin = !!req.user;
+      const isAdmin = hasModuleAccess(req.user, 'announcements');
       const q = isAdmin
         ? 'SELECT a.*, u.name as author FROM announcements a LEFT JOIN admin_users u ON a.created_by=u.id ORDER BY a.created_at DESC'
         : 'SELECT * FROM announcements WHERE is_published=true ORDER BY published_at DESC LIMIT 10';

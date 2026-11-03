@@ -132,6 +132,7 @@ Visit:
 1. Provision a MySQL 8+ database with your chosen hosting provider.
 2. Set `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD`, and `MYSQL_DATABASE` in the backend environment.
 3. Run `npm run seed` from `backend` to create the tables and seed initial content.
+4. For an existing database, run `npm run migrate:module-access` from `backend` before deploying the per-staff module access controls.
 
 ### Step 2 — Backend (Web Service)
 1. Render Dashboard → **New → Web Service** → connect this repo, root directory `backend`.

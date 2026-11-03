@@ -1,9 +1,19 @@
 const pool = require('../config/database');
 const auditLog = require('../utils/auditLog');
+const { hasModuleAccess } = require('../utils/moduleAccess');
 const preferenceEventTypes = ['registration.created', 'contact_message.created'];
+const eventModules = {
+  'registration.created': 'registrations',
+  'contact_message.created': 'messages',
+};
+
+const getVisibleEventTypes = (user) => preferenceEventTypes
+  .filter((eventType) => hasModuleAccess(user, eventModules[eventType]));
 
 const list = async (req, res, next) => {
   try {
+    const visibleEvents = getVisibleEventTypes(req.user);
+    if (!visibleEvents.length) return res.json({ data: [], nextBeforeId: null });
     const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 20, 1), 50);
     const beforeId = Number.parseInt(req.query.beforeId, 10);
     const conditions = ['recipient_user_id = ?'];
@@ -14,6 +24,8 @@ const list = async (req, res, next) => {
       conditions.push('id < ?');
       params.push(beforeId);
     }
+    conditions.push(`event_type IN (${visibleEvents.map(() => '?').join(', ')})`);
+    params.push(...visibleEvents);
     params.push(limit);
 
     const result = await pool.query(
@@ -30,9 +42,13 @@ const list = async (req, res, next) => {
 
 const unreadCount = async (req, res, next) => {
   try {
+    const visibleEvents = getVisibleEventTypes(req.user);
+    if (!visibleEvents.length) return res.json({ count: 0 });
     const result = await pool.query(
-      'SELECT COUNT(*) AS count FROM notifications WHERE recipient_user_id = ? AND read_at IS NULL',
-      [req.user.id]
+      `SELECT COUNT(*) AS count FROM notifications
+       WHERE recipient_user_id = ? AND read_at IS NULL
+         AND event_type IN (${visibleEvents.map(() => '?').join(', ')})`,
+      [req.user.id, ...visibleEvents]
     );
     res.json({ count: Number(result.rows[0].count) });
   } catch (error) {
@@ -42,14 +58,19 @@ const unreadCount = async (req, res, next) => {
 
 const markRead = async (req, res, next) => {
   try {
+    const visibleEvents = getVisibleEventTypes(req.user);
+    if (!visibleEvents.length) return res.status(404).json({ error: 'Notification not found.' });
     const result = await pool.query(
-      'UPDATE notifications SET read_at = COALESCE(read_at, NOW()) WHERE id = ? AND recipient_user_id = ?',
-      [req.params.id, req.user.id]
+      `UPDATE notifications SET read_at = COALESCE(read_at, NOW())
+       WHERE id = ? AND recipient_user_id = ?
+         AND event_type IN (${visibleEvents.map(() => '?').join(', ')})`,
+      [req.params.id, req.user.id, ...visibleEvents]
     );
     if (!result.rowCount) {
       const existing = await pool.query(
-        'SELECT id FROM notifications WHERE id = ? AND recipient_user_id = ?',
-        [req.params.id, req.user.id]
+        `SELECT id FROM notifications WHERE id = ? AND recipient_user_id = ?
+         AND event_type IN (${visibleEvents.map(() => '?').join(', ')})`,
+        [req.params.id, req.user.id, ...visibleEvents]
       );
       if (!existing.rows[0]) return res.status(404).json({ error: 'Notification not found.' });
     }
@@ -61,9 +82,13 @@ const markRead = async (req, res, next) => {
 
 const markAllRead = async (req, res, next) => {
   try {
+    const visibleEvents = getVisibleEventTypes(req.user);
+    if (!visibleEvents.length) return res.json({ message: 'All notifications marked as read.' });
     await pool.query(
-      'UPDATE notifications SET read_at = NOW() WHERE recipient_user_id = ? AND read_at IS NULL',
-      [req.user.id]
+      `UPDATE notifications SET read_at = NOW()
+       WHERE recipient_user_id = ? AND read_at IS NULL
+         AND event_type IN (${visibleEvents.map(() => '?').join(', ')})`,
+      [req.user.id, ...visibleEvents]
     );
     res.json({ message: 'All notifications marked as read.' });
   } catch (error) {
@@ -73,9 +98,12 @@ const markAllRead = async (req, res, next) => {
 
 const getPreferences = async (req, res, next) => {
   try {
+    const visibleEvents = getVisibleEventTypes(req.user);
+    if (!visibleEvents.length) return res.json([]);
     const result = await pool.query(
-      'SELECT event_type, in_app_enabled, email_enabled FROM admin_notification_preferences WHERE user_id = ?',
-      [req.user.id]
+      `SELECT event_type, in_app_enabled, email_enabled FROM admin_notification_preferences
+       WHERE user_id = ? AND event_type IN (${visibleEvents.map(() => '?').join(', ')})`,
+      [req.user.id, ...visibleEvents]
     );
     const saved = new Map(result.rows.map((row) => [row.event_type, row]));
     res.json(preferenceEventTypes.map((eventType) => {
@@ -94,8 +122,9 @@ const getPreferences = async (req, res, next) => {
 const updatePreferences = async (req, res, next) => {
   try {
     const preferences = req.body.preferences;
+    const visibleEventTypes = getVisibleEventTypes(req.user);
     if (!Array.isArray(preferences) || preferences.some((preference) =>
-      !preferenceEventTypes.includes(preference.event_type)
+      !visibleEventTypes.includes(preference.event_type)
       || typeof preference.in_app_enabled !== 'boolean'
       || typeof preference.email_enabled !== 'boolean'
     )) {

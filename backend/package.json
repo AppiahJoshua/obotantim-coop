@@ -9,6 +9,7 @@
     "seed": "node src/run-schema.js",
     "migrate:notifications": "node src/run-notifications-migration.js",
     "migrate:password-reset": "node src/run-password-reset-migration.js",
+    "migrate:module-access": "node src/run-module-access-migration.js",
     "migrate:security": "node src/scripts/run-security-migration.js",
     "worker:email": "node src/workers/emailOutboxWorker.js",
     "worker:sms": "node src/workers/smsOutboxWorker.js",
