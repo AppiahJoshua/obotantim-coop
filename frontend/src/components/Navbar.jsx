@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Menu, X, ChevronDown } from 'lucide-react';
 
 const navLinks = [
@@ -13,6 +13,7 @@ const navLinks = [
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const scrollFrame = useRef(0);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 60);
@@ -20,11 +21,41 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  useEffect(() => () => cancelAnimationFrame(scrollFrame.current), []);
+
   const handleNav = (e, href) => {
     e.preventDefault();
     setMobileOpen(false);
     const el = document.querySelector(href);
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
+    if (!el) return;
+
+    cancelAnimationFrame(scrollFrame.current);
+    const headerOffset = href === '#home' ? 0 : window.innerWidth >= 1024 ? 80 : 64;
+    const target = Math.max(0, Math.min(
+      el.getBoundingClientRect().top + window.scrollY - headerOffset,
+      document.documentElement.scrollHeight - window.innerHeight
+    ));
+    const start = window.scrollY;
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || Math.abs(target - start) < 1) {
+      window.scrollTo({ top: target, behavior: 'instant' });
+      return;
+    }
+
+    let startedAt;
+    const duration = 360;
+    const animateScroll = (timestamp) => {
+      startedAt ??= timestamp;
+      const progress = Math.min((timestamp - startedAt) / duration, 1);
+      const eased = progress < 0.5
+        ? 4 * progress ** 3
+        : 1 - ((-2 * progress + 2) ** 3) / 2;
+
+      window.scrollTo({ top: start + (target - start) * eased, behavior: 'instant' });
+      if (progress < 1) scrollFrame.current = requestAnimationFrame(animateScroll);
+    };
+
+    scrollFrame.current = requestAnimationFrame(animateScroll);
   };
 
   return (
