@@ -6,7 +6,7 @@ const aboutImages = [
   { src: '/images/about/cooperative-members.webp', alt: 'Obotantim Cooperative members gathered for a meeting' },
   { src: '/images/about/market-shopkeeper.webp', alt: 'A smiling shopkeeper at her colorful market stall' },
   { src: '/images/about/market-vendor.webp', alt: 'A Ghanaian market vendor surrounded by fresh produce' },
-  { src: '/images/about/director.webp', alt: 'Obotantim Cooperative director' },
+  { src: '/images/about/susu-collector.webp', alt: 'A SUSU collector serving a cooperative member' },
   { src: '/images/about/community-member.webp', alt: 'Obotantim board members meeting with a cooperative member' },
 ];
 
