@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useInView } from 'react-intersection-observer';
 import { Quote } from 'lucide-react';
 import api from '../api/axios';
+import Skeleton from './ui/Skeleton';
 
 const fallback = {
   director_name: 'The Board of Directors',
@@ -17,14 +18,37 @@ We invite you to join our growing family. Together, we can build a stronger, mor
 export default function DirectorMessage() {
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.2 });
 
-  const { data } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['director'],
     queryFn: () => api.get('/director').then(r => r.data),
-    placeholderData: fallback,
   });
 
   const director = data || fallback;
   const paragraphs = director.message.split('\n').filter(p => p.trim());
+
+  if (isLoading) {
+    return (
+      <section className="relative overflow-hidden bg-primary py-24">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <div role="status" aria-label="Loading director's message" aria-busy="true">
+            <span className="sr-only">Loading director's message</span>
+            <Skeleton className="mx-auto mb-4 h-4 w-48 bg-white/20" />
+            <Skeleton className="mx-auto mb-14 h-10 w-72 max-w-full bg-white/20" />
+            <div className="grid items-center gap-10 lg:grid-cols-5">
+              <Skeleton className="mx-auto aspect-square w-full max-w-sm rounded-3xl bg-white/20 lg:col-span-2" />
+              <div className="space-y-4 rounded-3xl border border-white/10 bg-white/10 p-8 lg:col-span-3 lg:p-10">
+                <Skeleton className="h-4 w-full bg-white/20" />
+                <Skeleton className="h-4 w-11/12 bg-white/20" />
+                <Skeleton className="h-4 w-4/5 bg-white/20" />
+                <Skeleton className="h-4 w-full bg-white/20" />
+                <Skeleton className="mt-8 h-4 w-40 bg-white/20" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="py-24 bg-primary relative overflow-hidden" ref={ref}>

@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useInView } from 'react-intersection-observer';
 import { Quote, ChevronLeft, ChevronRight } from 'lucide-react';
 import api from '../api/axios';
+import Skeleton from './ui/Skeleton';
 
 const fallback = [
   { id: 1, name: 'Akosua Mensah', location: 'Techiman Market', message: 'I started with the Daakye Savings account two years ago. Today, I have a proper shop and I\'m supporting my children\'s education. Obotantim changed my life.', photo_url: null },
@@ -14,13 +15,36 @@ export default function Testimonials() {
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.2 });
   const [index, setIndex] = useState(0);
 
-  const { data } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['testimonials'],
     queryFn: () => api.get('/testimonials').then(r => r.data),
-    placeholderData: fallback,
   });
 
   const items = data?.length ? data : fallback;
+
+  if (isLoading) {
+    return (
+      <section className="relative overflow-hidden bg-white py-24">
+        <div className="relative z-10 mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
+          <div role="status" aria-label="Loading testimonials" aria-busy="true">
+            <span className="sr-only">Loading testimonials</span>
+            <Skeleton className="mx-auto mb-4 h-4 w-32" />
+            <Skeleton className="mx-auto mb-12 h-9 w-72 max-w-full" />
+            <Skeleton className="mx-auto mb-8 h-5 w-full max-w-2xl" />
+            <Skeleton className="mx-auto mb-4 h-5 w-11/12 max-w-xl" />
+            <Skeleton className="mx-auto mb-8 h-5 w-3/4 max-w-lg" />
+            <div className="mx-auto flex max-w-xs items-center justify-center gap-4">
+              <Skeleton className="h-14 w-14 shrink-0 rounded-full" />
+              <div className="w-full space-y-2">
+                <Skeleton className="h-4 w-2/3" />
+                <Skeleton className="h-3 w-1/2" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   useEffect(() => {
     const interval = setInterval(() => setIndex((i) => (i + 1) % items.length), 6000);

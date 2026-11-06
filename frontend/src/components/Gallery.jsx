@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useInView } from 'react-intersection-observer';
 import { X, ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react';
 import api from '../api/axios';
+import { GalleryGridSkeleton } from './ui/Skeleton';
 
 const fallbackImages = [
   { id: 1, image_url: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=600&q=80', caption: 'Member training session' },
@@ -19,10 +20,9 @@ export default function Gallery() {
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.05 });
   const [activeIndex, setActiveIndex] = useState(null);
 
-  const { data: images } = useQuery({
+  const { data: images, isLoading } = useQuery({
     queryKey: ['gallery'],
     queryFn: () => api.get('/gallery').then(r => r.data),
-    placeholderData: fallbackImages,
   });
 
   const gallery = images?.length ? images : fallbackImages;
@@ -39,31 +39,35 @@ export default function Gallery() {
           <h2 className="section-heading">Gallery</h2>
         </div>
 
-        <div className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 transition-all duration-700 delay-100 ${inView ? 'opacity-100' : 'opacity-0'}`}>
-          {gallery.map((img, i) => (
-            <button
-              key={img.id}
-              onClick={() => setActiveIndex(i)}
-              className="relative aspect-square rounded-xl overflow-hidden group focus:outline-none focus:ring-2 focus:ring-primary"
-              style={{ transitionDelay: `${i * 50}ms` }}
-            >
-              <img
-                src={img.image_url}
-                alt={img.caption || 'Gallery image'}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-              />
-              <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/60 transition-colors duration-300 flex items-center justify-center">
-                <ZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" size={28} />
-              </div>
-              {img.caption && (
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3
-                                opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <p className="text-white text-xs font-medium text-left">{img.caption}</p>
+        {isLoading ? (
+          <GalleryGridSkeleton />
+        ) : (
+          <div className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 transition-all duration-700 delay-100 ${inView ? 'opacity-100' : 'opacity-0'}`}>
+            {gallery.map((img, i) => (
+              <button
+                key={img.id}
+                onClick={() => setActiveIndex(i)}
+                className="relative aspect-square rounded-xl overflow-hidden group focus:outline-none focus:ring-2 focus:ring-primary"
+                style={{ transitionDelay: `${i * 50}ms` }}
+              >
+                <img
+                  src={img.image_url}
+                  alt={img.caption || 'Gallery image'}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/60 transition-colors duration-300 flex items-center justify-center">
+                  <ZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" size={28} />
                 </div>
-              )}
-            </button>
-          ))}
-        </div>
+                {img.caption && (
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3
+                                  opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <p className="text-white text-xs font-medium text-left">{img.caption}</p>
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Lightbox */}

@@ -11,9 +11,9 @@ function LoadingRegion({ label, children, className = '' }) {
   );
 }
 
-export function CardGridSkeleton({ count = 6 }) {
+export function CardGridSkeleton({ count = 6, className = 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3' }) {
   return (
-    <LoadingRegion label="Loading cards" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <LoadingRegion label="Loading cards" className={className}>
       {Array.from({ length: count }, (_, index) => (
         <div key={index} className="card space-y-4 p-5">
           <Skeleton className="h-10 w-10 rounded-xl" />
@@ -108,6 +108,16 @@ export function DashboardSkeleton() {
         <ListSkeleton count={3} />
         <ListSkeleton count={3} />
       </div>
+    </LoadingRegion>
+  );
+}
+
+export function GalleryGridSkeleton({ count = 8 }) {
+  return (
+    <LoadingRegion label="Loading gallery" className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+      {Array.from({ length: count }, (_, index) => (
+        <Skeleton key={index} className="aspect-square rounded-xl" />
+      ))}
     </LoadingRegion>
   );
 }

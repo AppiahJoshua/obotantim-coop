@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useInView } from 'react-intersection-observer';
 import { PiggyBank, Briefcase, Coins, Wallet, Banknote, Truck, GraduationCap, Users, ArrowRight } from 'lucide-react';
 import api from '../api/axios';
+import { CardGridSkeleton } from './ui/Skeleton';
 
 const iconMap = {
   'piggy-bank': PiggyBank,
@@ -66,10 +67,9 @@ function ProductCard({ product, scrollToRegister }) {
 export default function Products() {
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.05 });
 
-  const { data: products } = useQuery({
+  const { data: products, isLoading } = useQuery({
     queryKey: ['products'],
     queryFn: () => api.get('/products').then(r => r.data),
-    placeholderData: [...defaultSavings, ...defaultLoans],
   });
 
   const scrollToRegister = () => {
@@ -102,7 +102,7 @@ export default function Products() {
             </span>
             <div className="h-px flex-1 bg-gray-200" />
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {isLoading ? <CardGridSkeleton count={4} className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4" /> : <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {savings.map((p, i) => (
               <div key={p.id}
                    className={`transition-all duration-500 ${inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
@@ -110,7 +110,7 @@ export default function Products() {
                 <ProductCard product={p} scrollToRegister={scrollToRegister} />
               </div>
             ))}
-          </div>
+          </div>}
         </div>
 
         {/* Loans */}
@@ -122,7 +122,7 @@ export default function Products() {
             </span>
             <div className="h-px flex-1 bg-gray-200" />
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {isLoading ? <CardGridSkeleton count={4} className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4" /> : <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {loans.map((p, i) => (
               <div key={p.id}
                    className={`transition-all duration-500 ${inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
@@ -130,7 +130,7 @@ export default function Products() {
                 <ProductCard product={p} scrollToRegister={scrollToRegister} />
               </div>
             ))}
-          </div>
+          </div>}
         </div>
 
       </div>
