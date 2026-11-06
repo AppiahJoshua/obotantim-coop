@@ -111,7 +111,7 @@ export default function AdminLogin() {
             )}
 
             <button type="submit" disabled={submitting}
-                    className="btn-primary w-full justify-center py-3.5 disabled:opacity-60">
+                    className="btn-gold w-full justify-center py-3.5 disabled:opacity-60">
               {submitting ? <><Loader2 size={16} className="animate-spin" /> Checking...</> : mfaToken ? 'Verify code' : 'Sign In'}
             </button>
           </form>

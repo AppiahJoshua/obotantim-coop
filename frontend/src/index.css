@@ -77,9 +77,9 @@
 
 /* Custom scrollbar */
 ::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #f7f9f8; }
-::-webkit-scrollbar-thumb { background: #0B6B3A; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #095F33; }
+::-webkit-scrollbar-track { background: #F8F7FA; }
+::-webkit-scrollbar-thumb { background: #3B1D69; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #32185A; }
 
 /* Kente pattern (used in hero) */
 .kente-pattern {
@@ -88,8 +88,8 @@
       45deg,
       transparent,
       transparent 4px,
-      rgba(244,180,0,0.08) 4px,
-      rgba(244,180,0,0.08) 8px
+      rgba(255,208,0,0.08) 4px,
+      rgba(255,208,0,0.08) 8px
     ),
     repeating-linear-gradient(
       -45deg,
