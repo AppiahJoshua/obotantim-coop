@@ -1,5 +1,14 @@
+import { useEffect, useState } from 'react';
 import { useInView } from 'react-intersection-observer';
-import { Shield, Target, Users, Heart } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Pause, Play, Shield, Target, Users, Heart } from 'lucide-react';
+
+const aboutImages = [
+  { src: '/images/about/cooperative-members.webp', alt: 'Obotantim Cooperative members gathered for a meeting' },
+  { src: '/images/about/market-shopkeeper.webp', alt: 'A smiling shopkeeper at her colorful market stall' },
+  { src: '/images/about/market-vendor.webp', alt: 'A Ghanaian market vendor surrounded by fresh produce' },
+  { src: '/images/about/director.webp', alt: 'Obotantim Cooperative director' },
+  { src: '/images/about/community-member.webp', alt: 'Obotantim board members meeting with a cooperative member' },
+];
 
 const values = [
   { icon: Shield, title: 'Integrity', text: 'Every transaction, every decision — conducted with complete transparency and honesty.' },
@@ -10,6 +19,20 @@ const values = [
 
 export default function About() {
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 });
+  const [activeImage, setActiveImage] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(
+    () => !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+
+  useEffect(() => {
+    if (!isPlaying || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
+
+    const interval = window.setInterval(() => {
+      setActiveImage((current) => (current + 1) % aboutImages.length);
+    }, 5000);
+
+    return () => window.clearInterval(interval);
+  }, [isPlaying]);
 
   return (
     <section id="about" className="py-24 bg-white" ref={ref}>
@@ -28,13 +51,62 @@ export default function About() {
 
           {/* Image side */}
           <div className={`relative transition-all duration-700 delay-100 ${inView ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-8'}`}>
-            <div className="relative rounded-3xl overflow-hidden aspect-[4/3] shadow-2xl">
-              <img
-                src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&q=80"
-                alt="Cooperative members meeting"
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-primary/10" />
+            <div
+              className="relative aspect-[4/3] overflow-hidden rounded-3xl shadow-2xl"
+              role="region"
+              aria-label="Obotantim Cooperative photos"
+              aria-roledescription="carousel"
+            >
+              {aboutImages.map((image, index) => (
+                <img
+                  key={image.src}
+                  src={image.src}
+                  alt={activeImage === index ? image.alt : ''}
+                  aria-hidden={activeImage !== index}
+                  className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 motion-reduce:transition-none ${
+                    activeImage === index ? 'opacity-100' : 'opacity-0'
+                  }`}
+                />
+              ))}
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-primary/30 via-transparent to-transparent" />
+              <div className="absolute bottom-4 left-4 z-10 flex items-center gap-1 rounded-full bg-primary/90 p-1.5 shadow-lg backdrop-blur-sm">
+                <button
+                  type="button"
+                  onClick={() => setActiveImage((current) => (current - 1 + aboutImages.length) % aboutImages.length)}
+                  aria-label="Show previous photo"
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-white transition-colors hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                {aboutImages.map((image, index) => (
+                  <button
+                    key={image.src}
+                    type="button"
+                    onClick={() => setActiveImage(index)}
+                    aria-label={`Show photo ${index + 1}`}
+                    aria-pressed={activeImage === index}
+                    className={`h-2 w-2 rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold ${
+                      activeImage === index ? 'bg-gold' : 'bg-white/60 hover:bg-white'
+                    }`}
+                  />
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setIsPlaying((playing) => !playing)}
+                  aria-label={isPlaying ? 'Pause slideshow' : 'Play slideshow'}
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-white transition-colors hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold"
+                >
+                  {isPlaying ? <Pause size={15} /> : <Play size={15} />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveImage((current) => (current + 1) % aboutImages.length)}
+                  aria-label="Show next photo"
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-white transition-colors hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold"
+                >
+                  <ChevronRight size={18} />
+                </button>
+              </div>
             </div>
             {/* Floating badge */}
             <div className="absolute -bottom-6 -right-6 bg-primary rounded-2xl p-6 text-white shadow-xl">
