@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Upload, Check } from 'lucide-react';
 import api from '../../api/axios';
+import { FormSkeleton } from '../../components/ui/Skeleton';
 
 export default function AdminDirector() {
   const qc = useQueryClient();
@@ -41,7 +42,7 @@ export default function AdminDirector() {
     if (f) { setFile(f); setPreview(URL.createObjectURL(f)); }
   };
 
-  if (isLoading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
+  if (isLoading) return <FormSkeleton />;
 
   return (
     <div className="max-w-2xl">

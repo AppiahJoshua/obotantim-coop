@@ -38,11 +38,18 @@ app.use(cors({
 app.set('trust proxy', 1);
 
 // ── Rate Limiting ─────────────────────────────────────────────
+const independentlyRateLimitedPaths = new Set([
+  '/api/auth/login',
+  '/api/auth/mfa/verify-login',
+  '/api/auth/forgot-password',
+]);
+
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => independentlyRateLimitedPaths.has(req.originalUrl.split('?')[0]),
   message: { error: 'Too many requests. Please try again later.' },
 });
 

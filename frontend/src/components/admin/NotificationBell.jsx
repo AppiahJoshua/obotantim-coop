@@ -8,6 +8,7 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from '../../api/notifications';
+import Skeleton from '../ui/Skeleton';
 
 const dateLabel = (value) => new Intl.DateTimeFormat(undefined, {
   month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
@@ -21,6 +22,8 @@ export default function NotificationBell() {
   const { data: count = 0 } = useQuery({
     queryKey: ['notifications', 'unread-count'],
     queryFn: getUnreadNotificationCount,
+    refetchInterval: 60000,
+    refetchIntervalInBackground: false,
   });
   const { data, isLoading } = useQuery({
     queryKey: ['notifications', 'recent'],
@@ -77,7 +80,12 @@ export default function NotificationBell() {
             </header>
             <div className="max-h-96 overflow-y-auto">
               {isLoading ? (
-                <p className="px-4 py-8 text-center text-sm text-gray-500">Loading notifications...</p>
+                <div role="status" aria-label="Loading notifications" className="space-y-3 px-4 py-5">
+                  <span className="sr-only">Loading notifications</span>
+                  <Skeleton className="h-4 w-2/3" />
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
               ) : data?.data?.length ? data.data.map((item) => (
                 <button
                   key={item.id}

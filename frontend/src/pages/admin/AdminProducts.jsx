@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Pencil, Trash2, X, Power, Loader2 } from 'lucide-react';
 import api from '../../api/axios';
+import { CardGridSkeleton } from '../../components/ui/Skeleton';
 
 const emptyForm = { category: 'savings', title: '', description: '', icon: 'coins', interest_rate: '', sort_order: 0 };
 
@@ -70,9 +71,7 @@ export default function AdminProducts() {
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-20">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-        </div>
+        <CardGridSkeleton count={6} />
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {products?.map((p) => (

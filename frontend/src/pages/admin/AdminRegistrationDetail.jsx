@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, User, Phone, Mail, CreditCard, Briefcase, MapPin, Banknote, FileText, Loader2 } from 'lucide-react';
 import api from '../../api/axios';
+import { CardGridSkeleton } from '../../components/ui/Skeleton';
 
 const statusOptions = ['new', 'contacted', 'approved', 'completed', 'rejected'];
 const statusColors = {
@@ -47,7 +48,7 @@ export default function AdminRegistrationDetail() {
   });
 
   if (isLoading) {
-    return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
+    return <CardGridSkeleton count={2} />;
   }
 
   if (!reg) return <p className="text-gray-400">Registration not found.</p>;

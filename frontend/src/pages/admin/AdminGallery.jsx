@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, X, Loader2, Upload, Power } from 'lucide-react';
 import api from '../../api/axios';
+import { CardGridSkeleton } from '../../components/ui/Skeleton';
 
 export default function AdminGallery() {
   const qc = useQueryClient();
@@ -74,9 +75,7 @@ export default function AdminGallery() {
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-20">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-        </div>
+        <CardGridSkeleton count={8} />
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {images?.map((img) => (

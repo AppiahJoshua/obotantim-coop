@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Search, ChevronRight, ChevronLeft, Download } from 'lucide-react';
 import api from '../../api/axios';
 import { downloadCsv } from '../../api/downloadCsv';
+import { TableSkeleton } from '../../components/ui/Skeleton';
 
 const statusColors = {
   new: 'bg-blue-50 text-blue-600',
@@ -68,9 +69,7 @@ export default function AdminRegistrations() {
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-20">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-        </div>
+        <TableSkeleton rows={6} columns={6} />
       ) : (
         <div className="card overflow-hidden">
           <div className="overflow-x-auto">

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, X, Loader2, Key, Power, Shield, ShieldCheck, RotateCcw, Pencil, SlidersHorizontal } from 'lucide-react';
 import api from '../../api/axios';
 import { useAuth } from '../../context/AuthContext';
+import { TableSkeleton } from '../../components/ui/Skeleton';
 
 const emptyForm = { name: '', email: '', password: '', role: 'content_editor' };
 
@@ -102,9 +103,7 @@ export default function AdminUsers() {
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-20">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-        </div>
+        <TableSkeleton rows={6} columns={7} />
       ) : (
         <div className="card overflow-hidden">
           <table className="w-full text-sm">

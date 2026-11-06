@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Mail, Phone, Send, Check, Loader2, X, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 import api from '../../api/axios';
 import { downloadCsv } from '../../api/downloadCsv';
+import { ListSkeleton } from '../../components/ui/Skeleton';
 
 export default function AdminMessages() {
   const qc = useQueryClient();
@@ -50,9 +51,7 @@ export default function AdminMessages() {
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-20">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-        </div>
+        <ListSkeleton count={5} />
       ) : (
         <>
         <div className="space-y-3">

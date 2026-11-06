@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../api/axios';
+import { FormSkeleton } from '../../components/ui/Skeleton';
 
 const defaults = {
   contact_email: 'obotanimcoop.1@gmail.com',
@@ -29,7 +30,7 @@ export default function AdminSettings() {
     },
   });
 
-  if (isLoading) return <p className="py-16 text-center text-sm text-gray-500">Loading settings...</p>;
+  if (isLoading) return <FormSkeleton />;
 
   return (
     <div className="mx-auto max-w-2xl">

@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import useModuleAccess from './hooks/useModuleAccess';
+import { DashboardSkeleton } from './components/ui/Skeleton';
 
 // Public
 import PublicSite from './components/PublicSite';
@@ -27,18 +28,11 @@ import AdminSettings from './pages/admin/AdminSettings';
 const ProtectedRoute = ({ children, minRole, module }) => {
   const { user, loading, hasMinRole } = useAuth();
   const { disabledModules, isLoading: accessLoading, isError: accessError } = useModuleAccess();
-  if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-surface">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-        <p className="text-sm text-gray-500">Loading...</p>
-      </div>
-    </div>
-  );
+  if (loading) return <div className="min-h-screen bg-surface p-5 lg:p-8"><DashboardSkeleton /></div>;
   if (!user) return <Navigate to="/admin/login" replace />;
   if (minRole && !hasMinRole(minRole)) return <Navigate to="/admin" replace />;
   if (module && user.role !== 'super_admin') {
-    if (accessLoading) return <div className="min-h-screen bg-surface" />;
+    if (accessLoading) return <div className="min-h-screen bg-surface p-5 lg:p-8"><DashboardSkeleton /></div>;
     if (accessError) return <p role="alert" className="p-8 text-sm text-red-700">Could not verify dashboard access. Refresh and try again.</p>;
     if (disabledModules.includes(module)) return <p role="status" className="p-8 text-sm text-gray-600">This dashboard section is unavailable for your account.</p>;
   }

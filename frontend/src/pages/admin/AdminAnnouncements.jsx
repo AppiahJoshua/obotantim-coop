@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Pencil, Trash2, X, Loader2, Eye, EyeOff } from 'lucide-react';
 import api from '../../api/axios';
+import { ListSkeleton } from '../../components/ui/Skeleton';
 
 const emptyForm = { title: '', content: '', is_published: false };
 
@@ -52,9 +53,7 @@ export default function AdminAnnouncements() {
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-20">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-        </div>
+        <ListSkeleton count={4} />
       ) : (
         <div className="space-y-3">
           {announcements?.length ? announcements.map((a) => (

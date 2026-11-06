@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ScrollText, Clock, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 import api from '../../api/axios';
 import { downloadCsv } from '../../api/downloadCsv';
+import { TableSkeleton } from '../../components/ui/Skeleton';
 
 export default function AdminAuditLogs() {
   const [filters, setFilters] = useState({ startDate: '', endDate: '', userId: '', action: '', search: '' });
@@ -57,9 +58,7 @@ export default function AdminAuditLogs() {
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-20">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-        </div>
+        <TableSkeleton rows={6} columns={5} />
       ) : (
         <div className="card overflow-hidden">
           <table className="w-full text-sm">

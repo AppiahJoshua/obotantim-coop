@@ -4,6 +4,7 @@ import api from '../../api/axios';
 import { useAuth } from '../../context/AuthContext';
 import { getNotificationPreferences, saveNotificationPreferences } from '../../api/notifications';
 import { ShieldCheck } from 'lucide-react';
+import Skeleton from '../../components/ui/Skeleton';
 
 const eventLabels = {
   'registration.created': 'New member registrations',
@@ -152,7 +153,7 @@ export default function AdminProfile() {
 
       <section className="card p-5">
         <h2 className="font-semibold text-dark">Notification preferences</h2>
-        {preferencesQuery.isLoading ? <p className="mt-4 text-sm text-gray-500">Loading preferences...</p> : (
+        {preferencesQuery.isLoading ? <Skeleton className="mt-4 h-10 w-full" /> : (
           <div className="mt-4 divide-y divide-gray-100">
             {preferences.map((preference) => (
               <div key={preference.event_type} className="flex flex-wrap items-center justify-between gap-4 py-3">

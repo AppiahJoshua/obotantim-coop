@@ -7,11 +7,11 @@ import './index.css';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,
+      retry: (failureCount, error) => (
+        !error.response || error.response.status >= 500
+      ) && failureCount < 1,
       staleTime: 5 * 60 * 1000, // 5 minutes
       refetchOnWindowFocus: false,
-      refetchInterval: 15000,
-      refetchIntervalInBackground: true,
     },
   },
 });

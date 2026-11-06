@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import api from '../../api/axios';
 import { useAuth } from '../../context/AuthContext';
+import { DashboardSkeleton } from '../../components/ui/Skeleton';
 
 const statusColors = {
   new: 'bg-blue-50 text-blue-600',
@@ -45,13 +46,7 @@ export default function AdminDashboard() {
     queryFn: () => api.get('/admin/dashboard').then(r => r.data),
   });
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (isLoading) return <DashboardSkeleton />;
 
   const { stats, recentRegistrations, recentMessages, auditLogs } = data || {};
 

@@ -218,4 +218,24 @@ describe('security hardening HTTP integration', () => {
     expect(accepted.status).toBe(200);
     expect(pool.query.mock.calls.some(([sql]) => sql.includes('SET mfa_enabled = FALSE') && sql.includes('token_version = token_version + 1'))).toBe(true);
   });
+
+  test('dedicated login rate limit remains available after the general API limit is reached', async () => {
+    const password = 'Correct-Horse-Battery-1';
+    const passwordHash = await bcrypt.hash(password, 4);
+    pool.query.mockImplementation(async (sql) => {
+      if (sql.includes('SELECT * FROM admin_users WHERE email')) {
+        return { rows: [{ id: 8, name: 'Admin', email: 'admin@example.com', role: 'super_admin', is_active: 1, mfa_enabled: 0, token_version: 0, password: passwordHash }] };
+      }
+      return { rows: [], rowCount: 1 };
+    });
+
+    const apiRequests = await Promise.all(
+      Array.from({ length: 101 }, () => request(app).get('/api/not-a-route'))
+    );
+    expect(apiRequests.some((response) => response.status === 429)).toBe(true);
+
+    const login = await request(app).post('/api/auth/login').send({ email: 'admin@example.com', password });
+    expect(login.status).toBe(200);
+    expect(login.body.token).toBeTruthy();
+  });
 });
