@@ -22,6 +22,11 @@ export default function Testimonials() {
 
   const items = data?.length ? data : fallback;
 
+  useEffect(() => {
+    const interval = setInterval(() => setIndex((i) => (i + 1) % items.length), 6000);
+    return () => clearInterval(interval);
+  }, [items.length]);
+
   if (isLoading) {
     return (
       <section className="relative overflow-hidden bg-white py-24">
@@ -45,11 +50,6 @@ export default function Testimonials() {
       </section>
     );
   }
-
-  useEffect(() => {
-    const interval = setInterval(() => setIndex((i) => (i + 1) % items.length), 6000);
-    return () => clearInterval(interval);
-  }, [items.length]);
 
   const current = items[index];
 
